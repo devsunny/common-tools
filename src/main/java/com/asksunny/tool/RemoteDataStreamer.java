@@ -22,7 +22,7 @@ import com.asksunny.helper.io.StreamCopier;
 
 public class RemoteDataStreamer {
 
-	@CLIOptionBinding(shortOption = 'h', longOption = "host", hasValue = true, description = "Binding Address or remote receiver hostname, this option is required for sender.")	
+	@CLIOptionBinding(shortOption = 'H', longOption = "host", hasValue = true, description = "Binding Address or remote receiver hostname, this option is required for sender.")	
 	String host;
 	
 	@CLIOptionBinding(shortOption = 'p', longOption = "port", hasValue = true, description = "TCP Port used to streaming data")	
@@ -36,6 +36,10 @@ public class RemoteDataStreamer {
 	
 	@CLIOptionBinding(shortOption = 'v', longOption = "version", hasValue = false, description = "print this menu")
 	boolean version = false;
+	
+	
+	@CLIOptionBinding(shortOption = 'z', longOption = "compress", hasValue = false, description = "Compress Data or not")
+	boolean compress = false;
 	
 	
 	public static final String VERSION = "Remote Data Streamer version 1.0 (MIT License) - Sunny Liu";
@@ -52,6 +56,17 @@ public class RemoteDataStreamer {
 	{
 		try(
 			Socket client = SocketFactory.getDefault().createSocket(getHost(), getPort());		
+			OutputStream out = client.getOutputStream();			
+			FileInputStream fin = new FileInputStream(getFilePath()))
+			{			
+				StreamCopier.copy(fin, out);			
+			}		
+	}
+	
+	public void sendCompress() throws Exception
+	{
+		try(
+			Socket client = SocketFactory.getDefault().createSocket(getHost(), getPort());		
 			OutputStream out = client.getOutputStream();
 			GZIPOutputStream gout = new GZIPOutputStream(out);
 			FileInputStream fin = new FileInputStream(getFilePath()))
@@ -60,7 +75,22 @@ public class RemoteDataStreamer {
 			}		
 	}
 	
+	
 	public void receive() throws Exception
+	{		
+			
+		try(
+		ServerSocket server = ServerSocketFactory.getDefault().createServerSocket(getPort());	
+		Socket client = server.accept();		
+		InputStream in = client.getInputStream();		
+		FileOutputStream fout = new FileOutputStream(getFilePath()))
+		{			
+			StreamCopier.copy(in, fout);			
+		}		
+		
+	}
+	
+	public void receiveCompress() throws Exception
 	{		
 			
 		try(
@@ -108,8 +138,12 @@ public class RemoteDataStreamer {
 			System.exit(1);			
 		}
 		
-		if(sender){
+		if(sender && streamer.isCompress()){
+			streamer.sendCompress();
+		}else if(sender && !streamer.isCompress()){
 			streamer.send();
+		}else if(!sender && streamer.isCompress()){
+			streamer.receiveCompress();
 		}else{
 			streamer.receive();
 		}
@@ -118,8 +152,18 @@ public class RemoteDataStreamer {
 
 
 
+	
 
 
+
+	public boolean isCompress() {
+		return compress;
+	}
+
+
+	public void setCompress(boolean compress) {
+		this.compress = compress;
+	}
 
 
 	public boolean isHelp() {
