@@ -27,6 +27,13 @@ public class Base64 {
 	String pathToOutput = null;
 
 	public static final int BUFFER_SIZE = 1024 * 1024;
+	
+	@CLIOptionBinding(shortOption = 'v', longOption = "version", hasValue = false, description = "print this menu")
+	boolean version = false;
+	
+	public static final String VERSION = "Base64 encoder/decoder version 1.0 (MIT License) - Sunny Liu";
+	
+	
 
 	protected void encode() throws IOException {
 
@@ -69,11 +76,14 @@ public class Base64 {
 		Options options = CLIOptionAnnotationBasedBinder.getOptions(base64);
 		CLIOptionAnnotationBasedBinder.bindPosix(options, args, base64);
 
-		if (base64.isHelp() || base64.getPathToInput() == null
+		if (base64.isHelp() || base64.isVersion() || base64.getPathToInput() == null
 				|| base64.getPathToOutput() == null) {
 			HelpFormatter hfmt = new HelpFormatter();
 			hfmt.printHelp(base64.getClass().getName() + " <options>", options);
 			if (base64.isHelp()) {
+				System.exit(0);
+			}else if( base64.isVersion()){
+				System.out.println(VERSION);
 				System.exit(0);
 			} else {
 				System.exit(1);
@@ -86,6 +96,17 @@ public class Base64 {
 			base64.encode();
 		}
 
+	}
+
+	
+	
+	
+	public boolean isVersion() {
+		return version;
+	}
+
+	public void setVersion(boolean version) {
+		this.version = version;
 	}
 
 	public boolean isHelp() {
