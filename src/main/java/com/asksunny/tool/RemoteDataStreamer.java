@@ -148,6 +148,8 @@ public class RemoteDataStreamer {
 			streamer.receive();
 		}
 		
+		System.out.printf("File %s transfer complete.", streamer.getFilePath());
+		
 	}
 
 
