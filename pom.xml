@@ -4,7 +4,7 @@
 	<groupId>com.asksunny.tools</groupId>
 	<artifactId>common-tools</artifactId>
 	<version>1</version>
-	<build>	
+	<build>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -17,13 +17,13 @@
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>2.4</version>
 				<configuration>
-				<finalName>b64</finalName>				
+					<finalName>stream</finalName>
 					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>						
+						<descriptorRef>jar-with-dependencies</descriptorRef>
 					</descriptorRefs>
 					<archive>
 						<manifest>
-							<mainClass>com.asksunny.tool.Base64</mainClass>
+							<mainClass>com.asksunny.tool.RemoteDataStreamer</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
@@ -31,6 +31,22 @@
 		</plugins>
 	</build>
 	<dependencies>
+
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-chrome-driver</artifactId>
+			<version>2.37.1</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.specs2</groupId>
+			<artifactId>specs2_2.10</artifactId>
+			<version>2.3.7</version>
+			<scope>test</scope>
+		</dependency>
+
+
 		<dependency>
 			<groupId>com.asksunny.commons</groupId>
 			<artifactId>utils</artifactId>
@@ -81,4 +97,33 @@
 			<version>1.8</version>
 		</dependency>
 	</dependencies>
+	<repositories>
+
+		<repository>
+			<id>typesafe_repo</id>
+			<name>typesafe_repo</name>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<url>http://repo.typesafe.com/typesafe/releases/</url>
+		</repository>
+
+		<repository>
+			<id>oss.sonatype.org</id>
+			<name>releases</name>
+			<url>http://oss.sonatype.org/content/repositories/releases</url>
+		</repository>
+
+		<repository>
+			<id>sonatype-snapshots</id>
+			<name>snapshots</name>
+			<url>http://oss.sonatype.org/content/repositories/snapshots</url>
+		</repository>
+
+		<repository>
+			<id>central</id>
+			<name>Maven repository</name>
+			<url>http://repo1.maven.org/maven2</url>
+		</repository>
+	</repositories>
 </project>

@@ -77,6 +77,46 @@ val emptyPom = """<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="
 			<version>2.3.7</version>
 			<scope>test</scope>			
 		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.15</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>jmxtools</artifactId>
+					<groupId>com.sun.jdmk</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>jmxri</artifactId>
+					<groupId>com.sun.jmx</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>jms</artifactId>
+					<groupId>javax.jms</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>mail</artifactId>
+					<groupId>javax.mail</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.7.2</version>
+		</dependency>
      </dependencies>
 </project>
 """
@@ -139,6 +179,13 @@ projectBuild = projectBuild.concat(dep).concat(tscope)
 None
 });
 projectBuild = projectBuild.concat("\n\n\n\n\n")
+
+val mavenLocal = (new File(System.getProperty("user.home"), ".m2/repository")).toURI.toURL.toString
+
+projectBuild = projectBuild.concat("resolvers += \"Local Maven Repository\" at \"%s\"\n\n".format(mavenLocal))
+
+
+
 (pomXML \\ "repositories") \ "repository" foreach ((repository: Node) => {
 val id = (repository \ "id").text
 val url = (repository \ "url").text
