@@ -6,6 +6,7 @@ import org.openqa.selenium._
 import org.openqa.selenium.chrome._
 
 
+//http://chromedriver.storage.googleapis.com/index.html
 
 class Spec2DemoTest extends mutable.Specification
 {
