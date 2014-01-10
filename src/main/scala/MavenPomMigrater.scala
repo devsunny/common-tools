@@ -198,7 +198,7 @@ None
 writeToFile("build.sbt", projectBuild) 
 
 
-val buildProp = """sbt.version=0.13.0
+val buildProp = """sbt.version=0.13.1
 """
 writeToFile("project/build.properties", buildProp) 
 
