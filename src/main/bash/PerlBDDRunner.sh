@@ -25,13 +25,6 @@ fi
 if [ "$1" = "gen" ]; then
 SKELTONFILE="$2"
 echo "#!/usr/bin/env perl" > $SKELTONFILE
-echo "###################################################################" >> $SKELTONFILE
-echo "#  This is generated skeleton Test::More::Behaviour test spec file" >> $SKELTONFILE
-echo "#  Please replace context and it text with meaningful text that can " >> $SKELTONFILE
-echo "#  describe your module or scripts functions." >> $SKELTONFILE
-echo "#  " >> $SKELTONFILE
-echo "#  @author Sunny Liu" >> $SKELTONFILE
-echo "###################################################################" >> $SKELTONFILE
 echo "" >> $SKELTONFILE
 echo "" >> $SKELTONFILE
 echo "use strict;" >> $SKELTONFILE
