@@ -1,0 +1,221 @@
+options
+{
+    STATIC = false;
+    LOOKAHEAD=2;
+    FORCE_LA_CHECK=true;
+    USER_CHAR_STREAM = false ;    
+    JAVA_UNICODE_ESCAPE = true ;   
+}
+PARSER_BEGIN(XPathFilterParser)
+package com.asksunny.xml;
+import java.io.StringReader;
+
+public class XPathFilterParser
+{
+
+    public static void main(String args[])
+    {
+        try
+        {
+            String query = "/ROOT[age=123 && name='Sunny']@";
+            XPathFilterParser parser = new XPathFilterParser(new StringReader(query));
+            parser.parseXPath();
+        }
+        catch(Exception e)
+        {
+                e.printStackTrace();
+        }
+    }
+    
+    public static java.util.Stack<XmlDataReader.XmlSelectionNode> parseXPath(
+			String xPathExpr) throws ParseException {
+
+		java.util.Stack<XmlDataReader.XmlSelectionNode> xpaths = null;
+		XPathFilterParser parser = new XPathFilterParser(new StringReader(
+				xPathExpr));
+		xpaths = parser.parseXPath();
+		return xpaths;
+	}
+
+
+}
+PARSER_END(XPathFilterParser)
+SKIP :
+{
+    " "
+|   "\r"
+|   "\t"
+}
+
+
+TOKEN [IGNORE_CASE] :
+{ 
+  <AND: "&&">
+| <OR: "||">
+}
+
+TOKEN :
+{ /* Identifiers */
+ <IDENTIFIER: ( <LETTER> | "_" ) (<LETTER> | "-" | ":" | "_" | <DIGIT> | <DOLLAR> )* >
+ |<NUMERIC: ( (<DIGIT>)+ ( "." (<DIGIT>)+ )? | "." (<DIGIT>)+ )>  
+ | <SINGLEQUOTED_STRING: "'"
+    (
+      "''" |
+      ~["'"]
+    ) *
+    "'">
+  | <DOUBLEQUOTED_STRING: "\""
+    (    
+      ~["\""]
+    ) *
+    "\"">
+}
+
+TOKEN : 
+{
+    <DOLLAR: "$" >
+    | <ATTR: "@">
+    | <ELEM: "*">
+    | <BOTH: "&">
+    | <LPAREN: "(" >
+    | <RPAREN: ")" >
+    | <LFBRKT: "[" >
+    | <RFBRKT: "]" >
+    | <PATH_SEPARATOR: "/" >
+    | <MATCHOP: "=~" >
+    | <NOTMATCHOP: "!~" >
+    | <GE: ">=" >
+    | <GT: ">" >
+    | <NOTEQ: "!=" >
+    | <EQ: "=" >
+    | <LE: "<=" >
+    | <LT: "<" >
+}
+
+TOKEN:
+{
+    <#LETTER: ["a"-"z", "A"-"Z"]>
+}
+TOKEN :
+{
+    <#DIGIT: ["0" - "9"]>
+}
+
+
+java.util.Stack<XmlDataReader.XmlSelectionNode> parseXPath():
+{java.util.Stack<XmlDataReader.XmlSelectionNode> xpaths = new java.util.Stack<XmlDataReader.XmlSelectionNode>();
+XmlDataReader.XmlSelectionNode xpath = null;
+}
+{
+	(xpath = xpathElement(){xpaths.push(xpath);})+	
+	{
+		return xpaths;
+	}
+}
+
+
+XmlDataReader.XmlSelectionNode xpathElement():
+{
+	
+	String pathName = null; 
+	XmlDataReader.Filter filter = null;
+	XmlDataReader.SelectionType selectType = XmlDataReader.SelectionType.NONE;
+}
+{
+	(<PATH_SEPARATOR> <IDENTIFIER>{pathName=token.image;} (filter=filterExpression())? (selectType = selection())?)
+	{
+		XmlDataReader.XmlSelectionNode selectionNode = new XmlDataReader.XmlSelectionNode();
+		selectionNode.setName(pathName);
+		selectionNode.setSelectionType(selectType);
+		selectionNode.setFilter(filter);
+		return selectionNode;
+	}
+}
+
+XmlDataReader.SelectionType selection():
+{XmlDataReader.SelectionType type = XmlDataReader.SelectionType.NONE; }
+{
+	(<ATTR>{type = XmlDataReader.SelectionType.ATTRIBUTE;} 
+	| <ELEM>{type = XmlDataReader.SelectionType.ELEMENT;} 
+	| <BOTH>{type = XmlDataReader.SelectionType.BOTH;})
+	{		
+		return type;
+	}
+}
+
+XmlDataReader.Filter filterExpression():
+{XmlDataReader.Filter  pfilter = null;}
+{
+	(<LFBRKT> pfilter =logicExpr() <RFBRKT>)
+	{
+		return pfilter;
+	}
+	
+}
+
+
+XmlDataReader.Filter  logicExpr():
+{
+	XmlDataReader.FilterChain  filterChain = new XmlDataReader.FilterChain(XmlDataReader.FilterOperator.AND);
+	XmlDataReader.Filter  pfilter = null;
+	XmlDataReader.Filter nfilter = null;
+	XmlDataReader.FilterOperator op = null;
+}
+{
+	(pfilter=compareExpr(){filterChain.addFilter(pfilter);} (op=logicOperator() nfilter=compareExpr(){ nfilter.setFilterOperator(op); filterChain.addFilter(nfilter); })*)
+	{
+		return filterChain;
+	}
+}
+
+
+XmlDataReader.Filter compareExpr():
+{
+	XmlDataReader.Filter filter = null;
+	XmlDataReader.FilterType filterType = XmlDataReader.FilterType.EQUAL;
+	String name = null;
+	String value = null;
+}
+{
+	( ((<ATTR>)? <IDENTIFIER>{name=token.image;} filterType=compareOperator() 
+		(<NUMERIC>{value=token.image;}
+	 | <DOUBLEQUOTED_STRING>{value=token.image.substring(1, token.image.length()-1);} 
+	 | <SINGLEQUOTED_STRING>) {value=token.image.substring(1, token.image.length()-1);} )
+	{
+		filter = new XmlDataReader.Filter(name, value, filterType);
+	}
+	| <LPAREN> logicExpr() <RPAREN>
+	)
+	{
+		return filter;
+	}
+}
+
+XmlDataReader.FilterType compareOperator():
+{XmlDataReader.FilterType filterType = XmlDataReader.FilterType.EQUAL;}
+{
+	(<MATCHOP> {filterType = XmlDataReader.FilterType.MATCH;}
+	| <NOTMATCHOP> {filterType = XmlDataReader.FilterType.NOT_MATCH;}
+	| <GE> {filterType = XmlDataReader.FilterType.GREATER_THAN_EQUAL;}
+	| <GT> {filterType = XmlDataReader.FilterType.GREATER_THAN;}
+	| <EQ> {filterType = XmlDataReader.FilterType.EQUAL;}
+	| <NOTEQ> {filterType = XmlDataReader.FilterType.NOT_EQUAL;}
+	| <LE> {filterType = XmlDataReader.FilterType.LESS_THAN_EQUAL;}
+	| <LT> {filterType = XmlDataReader.FilterType.LESS_THAN;}) 
+	{
+		return filterType;
+	}
+}
+
+ XmlDataReader.FilterOperator logicOperator():
+{XmlDataReader.FilterOperator op = XmlDataReader.FilterOperator.AND;}
+{
+	(<AND>{op = XmlDataReader.FilterOperator.AND;}
+	| <OR>{op = XmlDataReader.FilterOperator.OR;})
+	{
+		return op;
+	}
+	
+}
+ 
+    

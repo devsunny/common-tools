@@ -1,0 +1,187 @@
+@echo off
+setlocal
+setLocal EnableDelayedExpansion
+
+set CLASSPATH=".
+for /R ./lib %%a in (*.jar) do (
+set CLASSPATH=!CLASSPATH!;%%a
+)
+set CLASSPATH=!CLASSPATH!"
+echo !CLASSPATH!
+
+
+rem Suppress Terminate batch job on CTRL+C
+if not ""%1"" == ""run"" goto mainEntry
+if "%TEMP%" == "" goto mainEntry
+if exist "%TEMP%\%~nx0.run" goto mainEntry
+echo Y>"%TEMP%\%~nx0.run"
+if not exist "%TEMP%\%~nx0.run" goto mainEntry
+echo Y>"%TEMP%\%~nx0.Y"
+call "%~f0" %* <"%TEMP%\%~nx0.Y"
+rem Use provided errorlevel
+set RETVAL=%ERRORLEVEL%
+del /Q "%TEMP%\%~nx0.Y" >NUL 2>&1
+exit /B %RETVAL%
+:mainEntry
+del /Q "%TEMP%\%~nx0.run" >NUL 2>&1
+
+rem Guess DAS_HOME if not defined
+set "CURRENT_DIR=%cd%"
+if not "%DAS_HOME%" == "" goto gotHome
+set "DAS_HOME=%CURRENT_DIR%"
+if exist "%DAS_HOME%\bin\odbcserver.bat" goto okHome
+cd ..
+set "DAS_HOME=%cd%"
+cd "%CURRENT_DIR%"
+:gotHome
+
+if exist "%DAS_HOME%\bin\odbcserver.bat" goto okHome
+echo The DAS_HOME environment variable is not defined correctly
+echo This environment variable is needed to run this program
+goto end
+:okHome
+
+rem Copy CATALINA_BASE from DAS_HOME if not defined
+if not "%DAS_BASE%" == "" goto gotBase
+set "DAS_BASE=%DAS_HOME%"
+:gotBase
+
+rem Ensure that neither DAS_HOME nor DAS_BASE contains a semi-colon
+rem as this is used as the separator in the classpath and Java provides no
+rem mechanism for escaping if the same character appears in the path. Check this
+rem by replacing all occurrences of ';' with '' and checking that neither
+rem DAS_HOME nor DAS_BASE have changed
+if "%DAS_HOME%" == "%DAS_HOME:;=%" goto homeNoSemicolon
+echo Using DAS_HOME:   "%DAS_HOME%"
+echo Unable to start as DAS_HOME contains a semicolon (;) character
+goto end
+:homeNoSemicolon
+
+if "%DAS_BASE%" == "%DAS_BASE:;=%" goto baseNoSemicolon
+echo Using DAS_BASE:   "%DAS_BASE%"
+echo Unable to start as DAS_BASE contains a semicolon (;) character
+goto end
+:baseNoSemicolon
+
+rem Ensure that any user defined CLASSPATH variables are not used on startup,
+rem but allow them to be specified in setenv.bat, in rare case when it is needed.
+set CLASSPATH=
+
+rem Get standard environment variables
+if not exist "%DAS_BASE%\bin\setenv.bat" goto checkSetenvHome
+call "%DAS_BASE%\bin\setenv.bat"
+goto setenvDone
+:checkSetenvHome
+if exist "%DAS_HOME%\bin\setenv.bat" call "%DAS_HOME%\bin\setenv.bat"
+:setenvDone
+
+rem Get standard Java environment variables
+if exist "%DAS_HOME%\bin\setclasspath.bat" goto okSetclasspath
+echo Cannot find "%DAS_HOME%\bin\setclasspath.bat"
+echo This file is needed to run this program
+goto end
+:okSetclasspath
+call "%DAS_HOME%\bin\setclasspath.bat" %1
+if errorlevel 1 goto end
+
+set "JAVA_OPTS=%JAVA_OPTS% %LOGGING_CONFIG%"
+
+if not "%LOGGING_MANAGER%" == "" goto noJuliManager
+set LOGGING_MANAGER=-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+:noJuliManager
+set "JAVA_OPTS=%JAVA_OPTS% %LOGGING_MANAGER%"
+
+rem ----- Execute The Requested Command ---------------------------------------
+
+echo Using CATALINA_BASE:   "%DAS_BASE%"
+echo Using DAS_HOME:   "%DAS_HOME%"
+echo Using CATALINA_TMPDIR: "%CATALINA_TMPDIR%"
+if ""%1"" == ""debug"" goto use_jdk
+echo Using JRE_HOME:        "%JRE_HOME%"
+goto java_dir_displayed
+:use_jdk
+echo Using JAVA_HOME:       "%JAVA_HOME%"
+:java_dir_displayed
+echo Using CLASSPATH:       "%CLASSPATH%"
+
+set _EXECJAVA=%_RUNJAVA%
+set MAINCLASS=org.apache.catalina.startup.Bootstrap
+set ACTION=start
+
+
+if ""%1"" == ""debug"" goto doDebug
+if ""%1"" == ""start"" goto doStart
+if ""%1"" == ""stop"" goto doStop
+if ""%1"" == ""restart"" goto doRestart
+if ""%1"" == ""version"" goto doVersion
+
+echo Usage:  odbcserver ( commands ... )
+echo commands:
+echo   debug             Start odbcserver in a debugger
+echo   start             Start odbcserver
+echo   stop              Stop odbcserver
+echo   restart           Stop and Start odbcserver
+echo   version           What version of odbcserver are you running
+goto end
+
+:doDebug
+shift
+set _EXECJAVA=%_RUNJDB%
+set DEBUG_OPTS=-sourcepath "%DAS_HOME%\..\..\java"
+if not ""%1"" == ""-security"" goto execCmd
+shift
+echo Using Security Manager
+set "SECURITY_POLICY_FILE=%CATALINA_BASE%\conf\catalina.policy"
+goto execCmd
+
+:doRun
+shift
+if not ""%1"" == ""-security"" goto execCmd
+shift
+echo Using Security Manager
+set "SECURITY_POLICY_FILE=%CATALINA_BASE%\conf\catalina.policy"
+goto execCmd
+
+:doStart
+shift
+if "%TITLE%" == "" set TITLE=Tomcat
+set _EXECJAVA=start "%TITLE%" %_RUNJAVA%
+if not ""%1"" == ""-security"" goto execCmd
+shift
+echo Using Security Manager
+set "SECURITY_POLICY_FILE=%CATALINA_BASE%\conf\catalina.policy"
+goto execCmd
+
+:doStop
+shift
+set ACTION=stop
+set CATALINA_OPTS=
+goto execCmd
+
+:doRestart
+shift
+set ACTION=configtest
+set CATALINA_OPTS=
+goto execCmd
+
+:doVersion
+%_EXECJAVA% -classpath "%DAS_HOME%\lib\catalina.jar" org.apache.catalina.util.ServerInfo
+goto end
+
+
+:execCmd
+rem Get remaining unshifted command line arguments and save them in the
+set CMD_LINE_ARGS=
+:setArgs
+if ""%1""=="""" goto doneSetArgs
+set CMD_LINE_ARGS=%CMD_LINE_ARGS% %1
+shift
+goto setArgs
+:doneSetArgs
+
+
+%_EXECJAVA% %JAVA_OPTS% %DAS_OPTS% %DEBUG_OPTS% -Djava.endorsed.dirs="%JAVA_ENDORSED_DIRS%" -classpath "%CLASSPATH%" -Ddas.base="%DAS_BASE%" -Ddas.home="%DAS_HOME%" %MAINCLASS% %ACTION%
+goto end
+
+
+:end

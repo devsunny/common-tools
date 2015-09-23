@@ -1,0 +1,18 @@
+<ROOT>
+	<GRID name="STAR">
+		<CLUSTER name="North">
+			<METRIC name="OS" TEMP="123">
+				<CPU><core>4</core></CPU>
+				<MEMORY>1024</MEMORY>
+			</METRIC>
+		</CLUSTER>	
+	</GRID>
+	<GRID name="PLANET">
+		<CLUSTER name="SOUTH">
+			<METRIC name="OS" TEMP="562">
+				<CPU><core>4</core></CPU>
+				<MEMORY>1025</MEMORY>
+			</METRIC>
+		</CLUSTER>	
+	</GRID>
+</ROOT>

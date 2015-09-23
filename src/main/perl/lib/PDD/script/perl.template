@@ -1,0 +1,1311 @@
+#!/usr/bin/env perl
+
+use POSIX;
+use Scalar::Util qw(looks_like_number);
+#use Crypt::CBC;
+#use MIME::Base64;
+#use Crypt::OpenSSL::AES;
+
+
+my $global_sequnce_start = undef;
+my $global_sequnce_step = undef;
+my @EMAIL_ADDRSS_CHARS = ('A', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '!', '#', '$', '%', '&', "'", '*', '+', '-',  '?',  '^', '_',  '~');
+my @DOMAIN_ADDRSS_CHARS = ('A', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',  '-',   '_');
+
+my $EMAIL_ADDRSS_CHARS_NUM = @EMAIL_ADDRSS_CHARS;
+my $DOMAIN_ADDRSS_CHARS_NUM = @DOMAIN_ADDRSS_CHARS;
+
+my $current_group_key = undef;
+my $group_sum = undef;
+my $group_member_cnt = 0;
+my $group_max = undef;
+my $group_min = undef;
+my $group_last = undef;
+my $group_first = undef;
+
+{
+	my $useHeader ='';
+	$useHeader .= "use utf8;\nuse Encode;\n" if(defined($utf8));	
+	$useHeader .= "use PerlIO::gzip;\n" if(defined($in_compress) || defined($out_compress));	
+	$useHeader;
+}
+
+sub lookup;
+sub lastcol;
+sub convert_date;
+sub scol;
+sub prefix;
+sub postfix;
+sub ltrunc;
+sub rtrunc;
+sub ifnull;
+sub dateString;
+sub srow;
+sub unix2dos;
+sub dos2unix;
+sub trim0;
+sub ltrim0;
+sub rtrim0;
+sub trim;
+sub ltrim;
+sub rtrim;
+sub upper;
+sub lower;
+sub swapcase;
+sub substring;
+sub char;
+sub unicode_char;
+sub string_char;
+sub clean_unicode_str;
+sub concat;
+sub odd_split;
+sub odd_join;
+sub ends_with;
+sub is_blank;
+sub reg_get_match;
+sub reg_get_matches;
+sub reg_get_length_matches;
+sub re_index;
+sub ceil;
+sub floor;
+sub max;
+sub min;
+sub pow;
+sub sqrt;
+sub decimal_truncate;
+sub decimal_round;
+sub sample_col;
+sub sample_email;
+sub sample_ssn;
+sub sample_ccn;
+sub odd_random_sample;
+sub squence;
+sub group_last;
+sub group_first;
+sub group_min;
+sub group_max;
+sub group_average;
+sub group_count;
+sub group_reset;
+sub group_sum;
+sub force_error;
+sub force_abort;
+sub ext_split;
+
+my %month = (	
+	'01' => ucfirst('jan'),
+	'02' => ucfirst('feb'),
+	'03' => ucfirst('mar'),
+	'04' => ucfirst('apr'),
+	'05' => ucfirst('may'),
+	'06' => ucfirst('jun'),
+	'07' => ucfirst('jul'),
+	'08' => ucfirst('aug'),
+	'09' => ucfirst('sep'),
+	'10' => ucfirst('oct'),
+	'11' => ucfirst('nov'),
+	'12' => ucfirst('dec'),
+	'JAN' => '01',
+	'FEB' => '02',
+	'MAR' => '03',
+	'APR' => '04',
+	'MAY' => '05',
+	'JUN' => '06',
+	'JUL' => '07',
+	'AUG' => '08',
+	'SEP' => '09',
+	'OCT' => '10',
+	'NOV' => '11',
+	'DEC' => '12',
+);
+
+my $FS="|";
+my $RS="\n";
+my $OFS="|";
+my $ORS="\n";
+my $NULLVAL="";
+my $IRECNUM=0;
+my $ORECNUM=0;
+my $PROCNUM=0;
+my $FILTEROUTNUM=0;
+my $SKIPNUM=0;
+my $skip=0;
+my $limit=0;
+# begin section start
+{
+	
+	
+	my $begin = '';
+	while( my ($k, $v) = each %begin_section) {
+		if (defined $v) {
+		    $begin .= qq{ $k = $v;\n};
+		}
+		else {
+		    $begin .= qq{ $k;\n};
+		}
+	}
+	$begin;
+}
+# begin section end
+#lookup template;
+{
+	my $bcode = '';
+	my $bcCnt = scalar @begin_code;
+	if($bcCnt>0){
+		for my $bline (@begin_code){
+			if ( $bline =~ m/^$/ ){				
+				$bcode .= $bline . "\n";
+			}elsif($bline =~ m/;\n$/ || $bline =~ m/\n$/ ){			
+				$bcode .= $bline ;
+			} elsif ( $bline =~ m/;$/ ){
+				$bcode .= $bline . "\n";
+			} else{
+				$bcode .= $bline . ";\n";
+			}
+		}
+	}
+	$bcode;
+}
+{
+	my $filtered_out = '';
+	if (defined($row_filter) && defined($filter_file)){
+		$filtered_out .= "open (FILTERLOG, '>', '$filter_file') or die \"cannot open $filter_file: \$!\";\n";
+	}
+	$filtered_out;
+}
+$INFS = quotemeta($FS);	
+local $regex_split = length($FS)==1?0:1;
+foreach(@ARGV)
+\{
+	my $infile = $_ ;
+	{
+		my $openfstr = "open( my \$in_fh,";
+		if(defined($utf8) && defined($in_compress)){
+			$openfstr .="'<:gzip', \$infile ) or die \"\$infile: $!\\n\";\n\n";
+			$openfstr .="binmode \$in_fh, \"::encoding(utf8)\";\n\n"
+		}elsif(defined($utf8)){
+			$openfstr .="'<:encoding(utf8)', \$infile ) or die \"\$infile: $!\\n\";\n\n";						
+		}elsif(defined($in_compress)){
+			$openfstr .="'<:gzip', \$infile ) or die \"\$infile: $!\\n\";\n\n";
+		}else{
+			$openfstr .="'<', \$infile ) or die \"\$infile: $!\\n\";\n";
+		}
+		
+		if(defined($utf8)){
+			$openfstr .="binmode STDOUT, \":utf8\";\n"
+		}
+		if(defined($out_compress)){
+			$openfstr .="binmode STDOUT, \":gzip\";\n"
+		}
+		$openfstr .="\n";
+		$openfstr;
+	}
+	
+	local $/=$RS;
+	while( <$in_fh> ) \{
+		chomp;
+		my $line = $_;
+		++$IRECNUM;
+		$SKIPNUM++ unless ($IRECNUM > $skip);	
+		next unless ($IRECNUM > $skip);		
+		{
+			#we handle line base function here, unix2dos, srow, dos2unix
+			my $tabspace    = ' ' x 8;	
+			my $pre_funct_str = "\n";
+			my $preFuncCnt = scalar @presplit_function;
+			if ($preFuncCnt > 0) {				
+				for my $pfunct (@presplit_function) {									
+					$pre_funct_str .= $tabspace ."$pfunct;\n"  ;					
+				}
+			}
+			$pre_funct_str;
+		}        	
+		my @dataArray = ($regex_split==1)?split(/$INFS/, $line):ext_split($FS, $line, -1 );		
+		my $numCols = scalar @dataArray;		
+		$PROCNUM++;
+		#Filter start begin here
+		{
+			my $filter = '';
+			if (defined($row_filter) ){
+				$filter .= $row_filter ;
+				$filter .=" \{\n" ;
+			}
+			$filter;
+		}
+		#Filter start end here
+		
+		#record based function start here for example tally
+		{
+			my $tabspace    = ' ' x 8;	
+			my $line_funct_str = "\n";			
+			my $lineFuncCnt = scalar @line_function;
+			if ($lineFuncCnt > 0) {				
+				for my $line (@line_function) {									
+					$line_funct_str .= "$tabspace$line;\n"  ;					
+				}
+			}
+			$line_funct_str;
+		}
+		#Main columns section start here;
+		
+		my $oline = ""; 
+		{
+			my $cols_selection = "\n";
+			my $space    = ' ' x 8;				
+			my $cols = scalar @data_columns;
+			if ($cols > 0) {
+				my $cnt = 0;
+				for my $col (@data_columns) {
+					$cnt++;					
+					$cols_selection .= "$space\$oline .=$col;\n"  ;
+					if ($cnt < $cols){
+						$cols_selection .= "$space\$oline .=\$OFS;\n"  ;
+					}else{
+						$cols_selection .= "$space\$oline .=\$ORS;\n"  ;
+					}
+				}
+			}
+			$cols_selection .= "\n";	
+		}	
+		#Main columns section end here;
+		
+		print $oline;
+		++$ORECNUM;
+		last if ( $limit > 0 && $ORECNUM >= $limit);
+		#Filter end start here
+		{
+			my $filtere = '';
+			if (defined($row_filter) ){			
+				$filtere .=" \}else\{\n \$FILTEROUTNUM++; \n" ;
+				if( defined($filter_file) ){
+					$filtere .=" print FILTERLOG \$line . \"\\n\";\n" ;
+				}
+				$filtere .=" \}" ;
+			}
+			$filtere;
+		}
+		#Filter end end here
+	\}
+	close($in_fh);
+\}
+
+if(scalar @ARGV == 0 )
+{
+	local $/=$RS;
+	while( <> ) \{
+		chomp;
+		my $line = $_;
+		++$IRECNUM;
+		$SKIPNUM++ unless ($IRECNUM > $skip);	
+		next unless ($IRECNUM > $skip);		
+		{
+			#we handle line base function here, unix2dos, srow, dos2unix
+			my $tabspace    = ' ' x 8;	
+			my $pre_funct_str = "\n";
+			my $preFuncCnt = scalar @presplit_function;
+			if ($preFuncCnt > 0) {				
+				for my $pfunct (@presplit_function) {									
+					$pre_funct_str .= $tabspace ."$pfunct;\n"  ;					
+				}
+			}
+			$pre_funct_str;
+		}        	
+		my @dataArray = ($regex_split==1)?split(/$INFS/, $line):ext_split($FS, $line, -1 );		
+		my $numCols = scalar @dataArray;		
+		$PROCNUM++;
+		#Filter start begin here
+		{
+			my $filter = '';
+			if (defined($row_filter) ){
+				$filter .= $row_filter ;
+				$filter .=" \{\n" ;
+			}
+			$filter;
+		}
+		#Filter start end here
+		
+		#record based function start here for example tally
+		{
+			my $tabspace    = ' ' x 8;	
+			my $line_funct_str = "\n";			
+			my $lineFuncCnt = scalar @line_function;
+			if ($lineFuncCnt > 0) {				
+				for my $line (@line_function) {									
+					$line_funct_str .= "$tabspace$line;\n"  ;					
+				}
+			}
+			$line_funct_str;
+		}
+		#Main columns section start here;
+		
+		my $oline = ""; 
+		{
+			my $cols_selection = "\n";
+			my $space    = ' ' x 8;				
+			my $cols = scalar @data_columns;
+			if ($cols > 0) {
+				my $cnt = 0;
+				for my $col (@data_columns) {
+					$cnt++;					
+					$cols_selection .= "$space\$oline .=$col;\n"  ;
+					if ($cnt < $cols){
+						$cols_selection .= "$space\$oline .=\$OFS;\n"  ;
+					}else{
+						$cols_selection .= "$space\$oline .=\$ORS;\n"  ;
+					}
+				}
+			}
+			$cols_selection .= "\n";	
+		}	
+		#Main columns section end here;
+		
+		print $oline;
+		++$ORECNUM;
+		last if ( $limit > 0 && $ORECNUM >= $limit);
+		#Filter end start here
+		{
+			my $filtere = '';
+			if (defined($row_filter) ){			
+				$filtere .=" \}else\{\n \$FILTEROUTNUM++; \n" ;
+				if( defined($filter_file) ){
+					$filtere .=" print FILTERLOG \$line . \"\\n\";\n" ;
+				}
+				$filtere .=" \}" ;
+			}
+			$filtere;
+		}
+		#Filter end end here
+	\}
+}
+
+{
+	my $filtered_out = '';
+	if (defined($row_filter) && defined($filter_file)){
+		$filtered_out .= "close(FILTERLOG) or die \"cannot close $filter_file: \$!\";\n";
+	}
+	$filtered_out;
+}
+
+
+# end section start
+
+{
+	my $reportLine = '';
+	my $reportOut = "STDERR";
+	if (defined($xform_log) ){			
+		$reportLine .= 'open REPORTLOG, "' . ">>$xform_log" . '" or die "' . "Error opening $xform_log: \$!" .'";' ."\n" ;
+		$reportOut = "REPORTLOG";		
+	}
+	$reportLine .= "print $reportOut \"Records Received    : \[\$IRECNUM\]\\n\";\n";
+	$reportLine .= "print $reportOut \"Records Skpped    : \[\$SKIPNUM\]\\n\";\n";
+	if (defined($row_filter) ){			
+		$reportLine .=" print $reportOut \"Records Filtered Out: \[\$FILTEROUTNUM\]\\n\";\n" ;
+	}
+	$reportLine .= "print $reportOut \"Records Transformed    : \[\$ORECNUM\]\\n\";\n";
+	if (defined($xform_log) ){			
+		$reportLine .= "close REPORTLOG;\n";			
+	}
+	$reportLine;
+}
+
+
+
+sub ext_split
+\{
+	my @ret = ();
+	local $idx = 0;
+	local ($delim, $string) = @_;	
+	local $quoteVal = ord("\"");
+	local $delimVal = ord($delim);
+	@strchars = split (//, $string);	
+	local $len = scalar(@strchars);	
+	local $buf = "";
+	for($pos=0; $pos<$len; $pos++)
+	\{		
+		local $c = $strchars[$pos];		
+		local $cval = ord($c);
+		if($cval == $quoteVal && length($buf)==0)\{				
+				
+					for($pos++; $pos<$len; $pos++)\{
+						local $c2 = $strchars[$pos];						
+						if(ord($c2) == $quoteVal )\{							
+							last;
+						\}else\{
+							$buf .= $c2;
+						\}
+					\}	
+							
+		\}elsif($cval == $delimVal || $pos==($len-1))\{
+			$ret[$idx++] = $buf;			
+			$buf = "";				
+		\}else\{		
+			$buf .= $c;
+		\}
+	\}
+	return @ret;
+\}
+
+
+
+sub lookup
+\{
+    my ($name, $key) = @_;
+	{
+		$lookupfunction;	
+	}
+
+\}
+
+sub lastcol
+\{
+	my ($idx, @data) = @_;
+	return $data[$#data - ($idx-1)];
+\}
+
+
+sub convert_date
+\{
+	my ($data, $iystart, $imstart, $idstart, $yy, $mm, $dd, $ofmt) = @_;			
+	my $odtstr = $ofmt;	
+	
+	if($yy == 24)\{
+		my $iyear = substr($data, $iystart, 2);		
+		my $century = ($iyear>50)?1900:2000;
+		$iyear += $century;
+		$odtstr =~ s/yyyy/$iyear/;
+	\}elsif($yy == 42)\{
+		my $iyear = substr($data, $iystart+2, 2);
+		$odtstr =~ s/yy/$iyear/;
+	\}elsif($yy == 22)\{
+		my $iyear = substr($data, $iystart, 2);
+		$odtstr =~ s/yy/$iyear/;
+	\}elsif($yy == 44)\{
+		my $iyear = substr($data, $iystart, 4);
+		$odtstr =~ s/yyyy/$iyear/;
+	\}
+	
+	if($mm == 22)\{
+		my $imon = substr($data, $imstart, 2);		
+		$odtstr =~ s/mm/$imon/;
+	\}elsif($mm == 32)\{
+		my $imon = substr($data, $imstart, 3);		
+		$imon = $month\{uc($imon)\};
+		$odtstr =~ s/mm/$imon/;
+	\}elsif($mm == 23)\{
+		my $imon = substr($data, $imstart, 2);
+		$imon = $month\{$imon\};
+		$odtstr =~ s/mon/$imon/;
+	\}	
+	
+	if($dd == 22)\{
+		my $idd = substr($data, $idstart, 2);
+		$odtstr =~ s/dd/$idd/;
+	\}elsif($dd == 12)\{
+		my $idd = substr($data, $idstart);	
+		$idd = sprintf("%02d", $idd);
+		$odtstr =~ s/dd/$idd/;
+	\}elsif($dd == 21)\{
+		my $idd = substr($data, $idstart, 2);
+		$idd =~ s/^0//;
+		$odtstr =~ s/d/$idd/;
+	\}	
+	return $odtstr;
+\}
+
+sub scol
+\{
+	my ($data, $regexPattern, $replacement, $boolCaseInSensitive) = @_;	
+	if (defined($boolCaseInSensitive) && $boolCaseInSensitive)\{		
+		$data =~ s/$regexPattern/$replacement/ig
+	\}else\{		
+		$data =~ s/$regexPattern/$replacement/g
+	\}	
+	return $data;
+\}
+
+
+
+sub prefix
+\{
+	my ($data, $pre) =  @_;	
+	return $pre . $data;
+\}
+sub postfix
+\{
+	my ($data, $post) =  @_;	
+	return  $data . $post;
+\}
+
+sub ltrunc
+\{
+	my ($data, $num) =  @_;
+	$data =~ s/^.\{$num\}//;
+	return $data;
+\}
+
+sub rtrunc
+\{
+	my ($data, $num) =  @_;
+	$data =~ s/.\{$num\}$//;
+	return $data;
+\}
+
+
+sub ifnull
+\{
+	my ($nullablecol, $replacement) =  @_;
+	
+	if(defined($NULLVAL) && $nullablecol eq $NULLVAL)\{
+		return $replacement;
+	\}else\{		
+		return ($nullablecol eq "" )?$replacement:$nullablecol;
+	\}	
+\}
+
+
+sub dateString
+\{
+	my ($dfmt, $tfmt) =  @_;
+	my @lt = localtime();
+	my $odtStr = "";
+	if( defined($dfmt) && $dfmt eq 'yyyymmdd')\{
+		$odtStr .= strftime('%Y%m%d', @lt);
+	\}elsif( defined($dfmt) && $dfmt eq 'ymd')\{
+		$odtStr .= strftime('%Y-%m-%d', @lt);
+	\}elsif( defined($dfmt) && $dfmt eq 'mdy' )\{
+		$odtStr .= strftime('%m-%d-%Y', @lt);
+	\}elsif(defined($dfmt) && $dfmt eq 'dmony' )\{
+		$odtStr .= uc(strftime('%d-%b-%Y', @lt));
+	\}elsif(defined($dfmt) && $dfmt eq '24hr' )\{
+		$odtStr .= strftime('%Y-%m-%d %H:%M:%S', @lt);
+	\}elsif( defined($dfmt) && $dfmt eq '12hr' )\{
+		$odtStr .= uc(strftime('%d-%b-%Y %I:%M:%S', @lt));
+	\}
+	
+	if ( defined($dfmt) && length($dfmt)>0 )\{
+		$odtStr .= " ";
+	\}
+	
+	if(defined($tfmt) && ( $tfmt eq '24hr'))\{
+		$odtStr .= strftime('%H:%M:%S', @lt);
+	\}elsif( defined($tfmt) && ($tfmt eq 'ymd'))\{
+		$odtStr .= strftime('%I:%M:%S', @lt);
+	\}
+	return $odtStr;
+\}
+
+sub srow
+\{
+	my ($lineData, $regexPattern, $replacement, $boolCaseInSensitive) = @_;	
+	if (defined($boolCaseInSensitive) && $boolCaseInSensitive)\{		
+		$lineData =~ s/$regexPattern/$replacement/ig
+	\}else\{		
+		$lineData =~ s/$regexPattern/$replacement/g
+	\}	
+	return $lineData;
+\}
+
+sub unix2dos
+\{
+	my ($in) = shift  @_;
+	$in =~ s/\n/\r\n/g;	
+	return $in;
+\}
+
+sub dos2unix
+\{
+	my ($in) = shift  @_;
+	$in =~ s/\r\n/\n/g;	
+	return $in;
+\}
+
+sub trim0
+\{
+	my ($in) = shift  @_;
+	$in =~ s/^[0]+//;
+	$in =~ s/[0]+$//;
+	return $in;
+\}
+
+sub ltrim0
+\{
+	my ($in) = shift  @_;
+	$in =~ s/^[0]+//;
+	return $in;
+\}
+
+sub rtrim0
+\{
+	my ($in) = shift  @_;
+	$in =~ s/[0]+$//;
+	return $in;
+\}
+
+
+sub trim
+\{
+	my ($in) = shift  @_;
+	$in =~ s/^\s+//;
+	$in =~ s/\s+$//;
+	return $in;
+\}
+
+sub ltrim
+\{
+	my ($in) = shift  @_;
+	$in =~ s/^\s+//;
+	return $in;
+\}
+
+sub rtrim
+\{
+	my ($in) = shift  @_;
+	$in =~ s/\s+$//;
+	return $in;
+\}
+
+sub upper
+\{
+	my $input = shift(@_);	
+	return uc($input);
+\}
+
+
+sub lower
+\{
+	my $input = shift(@_);	
+	return lc($input);
+\}
+
+sub swapcase
+\{
+	my $input = shift(@_);
+    $input =~ tr/A-Za-z/a-zA-Z/;
+	return $input;
+\}
+
+sub substring
+\{
+	my ($expr, $strat, $length)  = @_;
+	return substr($expr, $strat, $length);
+\}
+
+sub char
+\{
+	my $input = shift(@_);	
+	return chr($input);	 
+\}
+
+sub unicode_char
+\{
+	my $input = shift(@_);	
+	return chr($input);	 
+\}
+
+sub string_char
+\{
+	my ($input, $pos) = @_;
+	if( $pos > length($input) ) \{	
+		return "NULL";
+	\}else\{
+		my $nth =  substr($input, $pos-1, 1);
+		return ord($nth);
+	\}
+\}
+
+
+sub clean_unicode_str
+\{
+	local $string = shift @_;	
+	local $test = $string;
+	if($test =~ m/\\u(\d{4})/g)\{
+		local $ret = "";
+		local $start = 0;
+		local $end = 0;
+		local $pos = 0;
+		while ($string =~ m/\\u(\d{4})/g) \{	 
+		 $pos = pos($string);	
+		 $end = $pos  - 6;
+		 $ret .= substr($string, $start, ($end-$start));
+		 $start = $pos;
+		 $ret .= chr($1); 
+		\}	
+		my $len = length($string);
+		if($start < $len ) \{ $ret .= substr($string, $start, ($len-$start)) ;\}
+		return $ret;
+	\}else\{
+		return $string;
+	\}
+\}
+
+
+sub concat
+\{
+	my $ret = "";
+	foreach (@_)
+	\{		
+		$ret = $ret . clean_unicode_str($_);
+	\}
+	return $ret;	 
+\}
+
+sub odd_split
+\{
+	my ($expr, $delimiter)  = @_;
+	return split($delimiter, $expr);
+\}
+
+
+sub odd_join
+\{
+	my @elems  = @_;
+	my $delimiter = pop(@elems);		
+	return  join($delimiter, @elems);
+\}
+
+sub ends_with
+\{
+	my ($string, $expr)  = @_;	
+	return length($expr)==0?1:($string =~ m/$expr$/);
+\}
+
+sub is_blank
+\{
+	my ($string)  = @_;	
+	return ($string =~ m/^[ \t]*$/);
+\}
+
+sub reg_get_match
+\{
+	local ($string, $regex, $offset)  = @_;
+	local $teststr = ($offset)?substr($string, $offset, length($string)-$offset):$string;	
+	my $ret = ($teststr =~ m/$regex/)?(($1)?$1:$&):undef;
+	return $ret;
+
+\}
+
+sub reg_get_matches
+\{
+	local ($string, $regex, $offset)  = @_;
+	local $teststr = ($offset)?substr($string, $offset, length($string)-$offset):$string;	
+	my @ret = ();
+	local $idx = 0;	
+	while($teststr =~ m/$regex/g)\{	
+		$ret[$id++] = $&;
+		#print "POSITION:" . pos($teststr) . " VALUE=" . $ret[$id-1] .  "\n";	
+	\}	
+	@ret;
+\}
+
+
+sub reg_get_length_matches
+\{
+	local ($string, $regex, $offset)  = @_;
+	local $teststr = ($offset)?substr($string, $offset, length($string)-$offset):$string;	
+	my @ret = ();
+	local $idx = 0;	
+	while($teststr =~ m/$regex/g)\{	
+		local $ml = length($&);
+		local $p = pos($teststr)-$ml;
+		local @mes = ();
+		$mes[0] =  $p + 1;
+		$mes[1] =  $ml;
+		push @ret, [@mes];
+		print "POSITION:" . $p . " length=" . $ml .  "\n";	
+	\}	
+	@ret;
+\}
+
+sub re_index
+\{
+	local ($string, $regex, $offset)  = @_;
+	local $teststr = ($offset)?substr($string, $offset, length($string)-$offset):$string;		
+	my $ret = ($teststr =~ m/$regex/g)?(pos($teststr)-length($&)+1):0;
+	return $ret;
+\}
+
+sub ceil
+\{
+	my ($input)  = @_;	
+	my $string = "$input";	
+	if( $string =~ m/\./)\{		
+		my @nums = split(/\./, $string);		
+		if( $nums[1] > 0)\{
+			return $nums[0] + 1;
+		\}else\{
+			return $nums[0] + 0;
+		\}	
+	\}else\{
+		return $input;
+	\}
+\}
+
+
+sub floor
+\{
+	my ($input)  = @_;	
+	my $string = "$input";	
+	if( $string =~ m/\./)\{		
+		my @nums = split(/\./, $string);		
+		return $nums[0] + 0;
+	\}else\{
+		return $input;
+	\}
+\}
+
+sub max
+\{
+	my ($ret, @rest)  = @_;	
+	foreach(@rest)
+	\{
+		$ret = $_ if($_ > $ret);
+	\}	
+	return $ret;
+\}
+
+sub min
+\{
+	my ($ret, @rest)  = @_;	
+	foreach(@rest)
+	\{
+		
+			$ret = $_ if($_ < $ret);
+		
+	\}
+	
+	return $ret;
+\}
+
+
+sub pow
+\{
+	my ($num, $pnum)  = @_;			
+	return $num**$pnum;
+\}
+
+sub sqrt
+\{
+	my ($num)  = @_;			
+	return $num**(1/2);
+\}
+
+sub decimal_truncate
+\{
+	my ($input, $len)  = @_;	
+	$input = abs($input);
+	my $string = "$input";	
+	if( $string =~ m/\./)\{		
+		my @nums = split(/\./, $string);
+		if(length($nums[1])>$len)\{
+			return ($nums[0] . "." . substr($nums[1], 0, $len)) + 0;	
+		\}else\{
+				return $input;
+			\}
+	\}else\{
+		return $input;
+	\}
+\}
+
+sub decimal_round
+\{
+	my ($input, $len)  = @_;	
+	my $string = "$input";	
+	if( $string =~ m/\./)\{		
+		my @nums = split(/\./, $string);
+		if(length($nums[1])>$len)\{
+			my $base =  ($nums[0] . "." . substr($nums[1], 0, $len)) + 0;	
+			my $remain = substr($nums[1], $len, 1);
+			if( $remain >= 5)\{
+				if($input >=0 )\{
+					$base = $base + (1/(10**$len));
+				\}else\{
+					$base = $base - (1/(10**$len));
+				\}
+			\}	
+			return $base;
+		\}else\{
+				return $input;
+		\}		
+	\}else\{
+		return $input;
+	\}
+\}
+
+
+
+sub sample_col
+\{
+	my $col_len = shift @_;
+	$col_len = 20 if(!defined($col_len ));
+	my $ret = "";	
+	my $idx= 0;
+	for($idx=0; $idx<$col_len; $idx++)
+	\{
+		$ret .= $EMAIL_ADDRSS_CHARS[int(rand($EMAIL_ADDRSS_CHARS_NUM))];
+	\}
+	return $ret;
+\}
+
+
+sub sample_email
+\{
+	my $ret = "";
+	my $lplen = int(rand(64));
+	my $idx= 0;
+	for($idx=0; $idx<$lplen; $idx++)
+	\{
+		$ret .= $EMAIL_ADDRSS_CHARS[int(rand($EMAIL_ADDRSS_CHARS_NUM))];
+	\}
+	$ret .= "@";
+	$lplen = int(rand(64));
+	for($idx=0; $idx<$lplen; $idx++)
+	\{
+		$ret .= $DOMAIN_ADDRSS_CHARS[int(rand($DOMAIN_ADDRSS_CHARS_NUM))];
+	\}
+	$ret .= ".com";
+	
+	return $ret;
+\}
+
+sub sample_ssn
+\{
+	my $seedSsn  = shift @_;
+	my $ret ;
+	if(defined($seedSsn))\{
+		$seedSsn =~ s/[ \-]//g;		
+		if(length($seedSsn)>1)\{
+			my $s1 = substr($seedSsn, 0, 3);
+			$ret = odd_random_sample($s1, 3, 3, 999);
+		\}else\{
+			$ret = odd_random_sample(999, 3, 3, 999);
+		\}
+		if(length($seedSsn)>3)\{
+			$ret .= odd_random_sample(substr($seedSsn, 4, 2), 2, 2, 99);
+		\}else\{
+			$ret .= odd_random_sample(99, 2, 2, 99);
+		\}
+		if(length($seedSsn)>5)\{
+			$ret .= odd_random_sample(substr($seedSsn, 5, 4), 4, 4, 9999);
+		\}else\{
+			$ret .= odd_random_sample(9999, 4, 4, 9999);
+		\}		
+	\}else\{
+		$ret = odd_random_sample(999, 3, 3, 999);
+		$ret .= odd_random_sample(99, 2, 2, 99);
+		$ret .= odd_random_sample(9999, 4, 4, 9999);
+	\}	
+	return $ret;
+\}
+
+sub sample_ccn
+\{
+	my $seedSsn  = shift @_;
+	my $ret ;
+	if(defined($seedSsn))\{
+		$seedSsn =~ s/[ \-]//g;		
+		if(length($seedSsn)>1)\{
+			my $s1 = substr($seedSsn, 0, 4);
+			$ret = odd_random_sample($s1, 4, 4, 9999);
+		\}else\{
+			$ret = odd_random_sample(9999, 4, 4, 9999);
+		\}
+		if(length($seedSsn)>4)\{
+			$ret .= odd_random_sample(substr($seedSsn, 4, 4), 4, 4, 9999);
+		\}else\{
+			$ret .= odd_random_sample(9999, 4, 4, 9999);
+		\}
+		if(length($seedSsn)>8)\{
+			$ret .= odd_random_sample(substr($seedSsn, 8, 4), 4, 4, 9999);
+		\}else\{
+			$ret .=odd_random_sample(9999, 4, 4, 9999);
+		\}
+		if(length($seedSsn)>12)\{
+			$ret .= odd_random_sample(substr($seedSsn, 12, 4), 4, 4, 9999);
+		\}else\{
+			$ret .=odd_random_sample(9999, 4, 4, 9999);
+		\}			
+	\}else\{
+		$ret = odd_random_sample(9999, 4, 4, 9999);
+		$ret .= odd_random_sample(9999, 4, 4, 9999);
+		$ret .= odd_random_sample(9999, 4, 4, 9999);
+		$ret .= odd_random_sample(9999, 4, 4, 9999);
+	\}	
+	return $ret;
+\}
+
+
+
+sub odd_random_sample
+\{
+	my($seed, $minlen, $maxlen, $maxval) = @_;
+	my $rnd = int(rand($seed));
+	if(defined($maxval) && $maxval > 0)\{
+		while($rnd>$maxval)\{
+			$rnd = int(rand($seed));
+	    \}
+	\}
+	my $strval = "$rnd";
+	if(length($strval)<$minlen)\{
+		my $idx = 0;
+		my $n = $minlen - length($strval);
+		for($idx = 0; $idx<$n; $idx++)
+		\{
+		 $strval .= "0";
+		\}
+	\}
+	if(length($strval)>$maxlen)\{		
+		$strval = substr($strval, 0, $maxlen);
+	\}
+	return $strval;
+\}
+
+
+sub squence
+\{
+	my ($start, $step) = @_;	
+	if( !defined($global_sequnce_start))\{
+		 if(looks_like_number($start))\{
+			$global_sequnce_start = $start;
+		\}else\{
+			$global_sequnce_start = 0;
+		\}
+		if(looks_like_number($step))\{
+			$global_sequnce_step = $step;
+		\}else\{
+			$global_sequnce_step = 1;
+		\}		
+	\}
+	my $ret = $global_sequnce_start;
+	$global_sequnce_start += $global_sequnce_step;	
+	return $ret;	
+\}
+
+
+sub group_last
+\{
+	my ($grp_key, $val) = @_;
+	if(!defined($grp_key))
+	\{
+		return ($current_group_key, $group_last);		 
+	\}else\{	
+		if(!defined($current_group_key) ||  ($grp_key eq $current_group_key))\{
+			$current_group_key = $grp_key;
+		    $group_last = $val;
+			return undef;
+		\}else\{
+			my $re_key =$current_group_key;
+			my $re_avr =  $group_last;
+			$current_group_key = $grp_key;
+			$group_last = $val;
+			return ($re_key, $re_avr);				
+		\}		
+	\}
+\}
+
+
+
+sub group_first
+\{
+	my ($grp_key, $val) = @_;
+	 return undef if(!defined($grp_key));	
+	if(!defined($current_group_key))\{
+		$current_group_key = $grp_key;
+		$group_first = $val;
+		return ($current_group_key, $group_first);
+	\}else\{
+		if( $grp_key eq $current_group_key)\{
+			return undef;
+		\}else\{
+			$current_group_key = $grp_key;
+		    $group_first = $val;
+			return ($current_group_key, $group_first);
+		\}
+	\}	
+\}
+
+
+sub group_min
+\{
+	my ($grp_key, $val) = @_;
+	if(!defined($grp_key))
+	\{
+		return ($current_group_key, $group_min);		 
+	\}else\{	
+		if( $grp_key eq $current_group_key)\{
+			if( looks_like_number($val))\{
+				if( defined($group_min) )\{
+				    $group_min = $val if ($val < $group_min);
+				\}else\{
+					$group_min = $val;
+				\}
+			\}
+			return undef;
+		\}else\{
+			if(!defined($current_group_key))\{
+				$current_group_key = $grp_key;
+				$group_min = $val ;
+				return undef;
+			\}else\{				
+				my $re_key =$current_group_key;
+				my $re_avr =  $group_min;
+				$current_group_key = $grp_key;
+				$group_min = $val;
+				return ($re_key, $re_avr);	
+			\}		
+		\}
+	\}
+	
+\}
+
+
+sub group_max
+\{
+	my ($grp_key, $val) = @_;
+	if(!defined($grp_key))
+	\{
+		return ($current_group_key, $group_max);		 
+	\}else\{	
+		if( $grp_key eq $current_group_key)\{
+			if( looks_like_number($val))\{
+				if( defined($group_max) )\{
+				    $group_max = $val if ($val > $group_max);
+				\}else\{
+					$group_max = $val;
+				\}
+			\}
+			return undef;
+		\}else\{
+			if(!defined($current_group_key))\{
+				$current_group_key = $grp_key;
+				$group_max = $val;
+				return undef;
+			\}else\{				
+				my $re_key =$current_group_key;
+				my $re_avr =  $group_max;
+				$current_group_key = $grp_key;
+				$group_max = $val;
+				return ($re_key, $re_avr);	
+			\}		
+		\}
+	\}
+	
+\}
+
+
+
+sub group_average
+\{
+	my ($grp_key, $val) = @_;
+	if(!defined($grp_key))
+	\{
+		return ($current_group_key, ($group_sum/$group_member_cnt));		 
+	\}else\{	
+		if( $grp_key eq $current_group_key)\{
+			$group_sum += ($val + 0);
+			$group_member_cnt++;
+			return undef;
+		\}else\{
+			if(!defined($current_group_key))\{
+				$current_group_key = $grp_key;
+				$group_sum = ($val + 0);
+				$group_member_cnt = 1;
+				return undef;
+			\}else\{				
+				my $re_key =$current_group_key;
+				my $re_avr =  ($group_sum/$group_member_cnt);
+				$current_group_key = $grp_key;
+				$group_sum = ($val + 0);
+				$group_member_cnt = 1;
+				return ($re_key, $re_avr);	
+			\}		
+		\}
+	\}
+	
+\}
+
+
+sub group_count
+\{
+	my ($grp_key, $val) = @_;
+	if(!defined($grp_key))
+	\{
+		return ($current_group_key, $group_member_cnt);		 
+	\}else\{	
+		if( $grp_key eq $current_group_key)\{
+			$group_sum += ($val + 0)  if looks_like_number($val) ;
+			$group_member_cnt++;
+			return undef;
+		\}else\{
+			if(!defined($current_group_key))\{
+				$current_group_key = $grp_key;
+				$group_sum = ($val + 0) if looks_like_number($val) ;
+				$group_member_cnt = 1;
+				return undef;
+			\}else\{				
+				my $re_key =$current_group_key;
+				my $re_avr = $group_member_cnt;
+				$current_group_key = $grp_key;
+				$group_sum = ($val + 0) if looks_like_number($val) ;
+				$group_member_cnt = 1;
+				return ($re_key, $re_avr);	
+			\}		
+		\}
+	\}	
+\}
+
+sub group_reset
+\{
+$current_group_key = undef;
+$group_sum = undef;
+$group_member_cnt = 0;
+$group_max = undef;
+$group_min = undef;
+$group_last = undef;
+$group_first = undef;
+\}
+
+sub group_sum
+\{
+	my ($grp_key, $val) = @_;
+	if(!defined($grp_key))
+	\{
+		return ($current_group_key, $group_sum);		 
+	\}else\{	
+		if( $grp_key eq $current_group_key)\{
+			$group_sum += ($val + 0) if looks_like_number($val) ;
+			$group_member_cnt++;
+			return undef;
+		\}else\{
+			if(!defined($current_group_key))\{
+				$current_group_key = $grp_key;
+				$group_sum = ($val + 0) if looks_like_number($val) ;
+				$group_member_cnt = 1;
+				return undef;
+			\}else\{				
+				my $re_key =$current_group_key;
+				my $re_avr =  $group_sum;
+				$current_group_key = $grp_key;
+				$group_sum = ($val + 0) if looks_like_number($val) ;
+				$group_member_cnt = 1;
+				return ($re_key, $re_avr);	
+			\}		
+		\}
+	\}
+	
+\}
+
+sub force_error
+\{
+  my ($msg)  = @_;
+  die($msg);
+\}
+
+sub force_abort
+\{
+  my ($msg)  = @_;
+  die($msg);
+\}
+
+
+__END__
+

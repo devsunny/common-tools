@@ -1,0 +1,241 @@
+options
+{
+    STATIC = false;
+    LOOKAHEAD=2;
+    FORCE_LA_CHECK=true;
+    USER_CHAR_STREAM = false ;    
+    JAVA_UNICODE_ESCAPE = true ;   
+}
+PARSER_BEGIN(DbDateParser)
+package com.asksunny.dbdate;
+import java.io.StringReader;
+
+public class DbDateParser
+{
+
+    public static void main(String args[])
+    {
+        try
+        {
+            String query = "YY-MM-DD";
+            DbDateParser parser = new DbDateParser(new StringReader(query));
+            java.util.List<DateFormatPart> dfps = parser.parseDateFormat();
+            for (DateFormatPart dateFormatPart : dfps) {
+            	System.out.println(String.format("Tyep:%s:%s", dateFormatPart.getType(), dateFormatPart.toString()));
+			}
+        }
+        catch(Exception e)
+        {
+                e.printStackTrace();
+        }
+    }
+    
+    
+
+
+}
+PARSER_END(DbDateParser)
+
+TOKEN [IGNORE_CASE] :
+{ 
+  <AM: "AM">
+| <PM: "PM">
+| <YEAR_YY: "YY">
+| <YEAR_YYYY: "YYYY">
+| <MONTH_MON: "MON">
+| <MONTH_MONTH:  "MONTH">
+| <MON_OR_MIN: "MM">
+| <DAY: "DD">
+| <HOUR: "HH">
+| <MIN: "MI">
+| <SECOND: "SS">
+| <MILLISECOND: "MMM">
+}
+
+TOKEN [IGNORE_CASE] :
+{ 
+  <HYPHEN: "-">
+| <UNDERSCORE: "_">
+| <COMMA: ",">
+| <SPACE: " ">
+| <SLASH: "/">
+| <COLON: ":">
+}
+
+
+
+java.util.List<DateFormatPart> parseDateFormat():
+{
+
+	java.util.List<DateFormatPart> dateparts = null;
+	java.util.List<DateFormatPart> timeparts = null;
+	DateFormatPart dtSep = null;
+
+}
+{
+	((dateparts=date() (dtSep=dateSeparator() timeparts=time())?)
+	| timeparts=time())
+	{
+		
+		java.util.List<DateFormatPart> dtparts = null;
+		if(dateparts!=null){
+			dtparts = dateparts;
+			if(timeparts!=null){
+				dtparts.add(dtSep);
+				dtparts.addAll(timeparts);
+			}
+		}else{
+			dtparts = timeparts;
+		}
+		
+		return dtparts;
+	
+	}
+
+}
+
+
+
+java.util.List<DateFormatPart> date():
+{
+	String tmg = null;
+	java.util.List<DateFormatPart> parts = new java.util.ArrayList<DateFormatPart>();
+	DateFormatPart dfp1 = null;
+	DateFormatPart sep1 = null;
+	DateFormatPart dfp2 = null;
+	DateFormatPart sep2 = null;
+	DateFormatPart dfp3 = null;
+	
+}
+{
+	(
+		
+		(dfp1=month() sep1=dateSeparator() <DAY>{ dfp2 = new DateFormatPart(DateFormatPart.Type.DAY);} sep2=dateSeparator() dfp3=year()  )	
+		|   (<DAY>{ dfp1 = new DateFormatPart(DateFormatPart.Type.DAY);} sep1=dateSeparator() dfp2=month()  sep2=dateSeparator() dfp3=year()  )	
+		| (dfp1=year() sep1=dateSeparator()  dfp2=month() sep2=dateSeparator() <DAY>{ dfp3 = new DateFormatPart(DateFormatPart.Type.DAY);} )	
+			
+	)
+	{
+		if(dfp1!=null) parts.add(dfp1);
+		if(sep1!=null) parts.add(sep1);
+		if(dfp2!=null) parts.add(dfp2);
+		if(sep2!=null) parts.add(sep2);
+		if(dfp3!=null) parts.add(dfp3);
+		
+		return parts;
+	}
+}
+
+DateFormatPart year():
+{
+	DateFormatPart year = null;
+}
+
+{
+	(<YEAR_YYYY> { year = new DateFormatPart(DateFormatPart.Type.YYYY);}
+	| <YEAR_YY> { year = new DateFormatPart(DateFormatPart.Type.YY);}
+	)
+	{
+		return year;
+	}
+}
+
+
+DateFormatPart month():
+{
+	DateFormatPart month = null;
+}
+
+{
+	(<MONTH_MONTH> { month = new DateFormatPart(DateFormatPart.Type.MONTH_MONTH);}
+	| <MONTH_MON> { month = new DateFormatPart(DateFormatPart.Type.MONTH_MON);}
+	| <MON_OR_MIN> { month = new DateFormatPart(DateFormatPart.Type.MONTH_MM);}
+	)
+	{
+		return month;
+	}
+}
+
+
+
+
+java.util.List<DateFormatPart> time():
+{
+	Boolean am = null;
+	String tmg = null;
+	java.util.List<DateFormatPart> parts = new java.util.ArrayList<DateFormatPart>();
+	DateFormatPart hh = null;
+	DateFormatPart sep1 = null;
+	DateFormatPart mm = null;
+	DateFormatPart sep2 = null;
+	DateFormatPart ss = null;
+	DateFormatPart sep3 = null;
+	DateFormatPart milli = null;
+}
+{
+	(
+	<HOUR>{} {hh = new DateFormatPart(DateFormatPart.Type.HOUR);}
+	sep1 = timeSeparator() 
+	(<MIN> | <MON_OR_MIN>){mm = new DateFormatPart(DateFormatPart.Type.MINUTE);}
+	(sep2=timeSeparator()
+	<SECOND>{ss=new DateFormatPart(DateFormatPart.Type.SECOND);} 
+	(sep3=timeSeparator() <MILLISECOND>{milli=new DateFormatPart(DateFormatPart.Type.MILLISECOND);} )?)? (am = ampm())?	
+	)
+	{
+		if(hh!=null) parts.add(hh);
+		if(sep1!=null) parts.add(sep1);
+		if(mm!=null) parts.add(mm);
+		if(sep2!=null) parts.add(sep2);
+		if(ss!=null) parts.add(ss);
+		if(sep3!=null) parts.add(sep3);
+		if(milli!=null) parts.add(milli);
+		if(am!=null) {
+			DateFormatPart apm = new DateFormatPart(DateFormatPart.Type.AMPM);
+			if(am){
+				apm.setValue("AM");
+			}else{
+				apm.setValue("PM");
+			}
+			parts.add(apm);		
+		}		
+		return parts;
+	}	
+}
+
+Boolean ampm():
+{Boolean am = null;}
+{
+	(<AM>{am =Boolean.TRUE;} | <PM> {am =Boolean.FALSE;})
+	{
+		return am;
+	}
+}
+
+DateFormatPart dateSeparator():
+{StringBuilder buf = new StringBuilder();}
+{
+ ( <HYPHEN>{buf.append(token.image);}
+| <UNDERSCORE>{buf.append(token.image);}
+| <COMMA>{buf.append(token.image);}
+| <SPACE>{buf.append(token.image);}
+| <SLASH>{buf.append(token.image);})*
+{
+	DateFormatPart dfp = new DateFormatPart(DateFormatPart.Type.SEPARATOR);
+	dfp.setValue(buf.toString());
+	return dfp;
+}
+
+}
+
+
+DateFormatPart timeSeparator():
+{StringBuilder buf = new StringBuilder();}
+{
+ ( <COLON>{buf.append(token.image);})*
+{
+	DateFormatPart dfp = new DateFormatPart(DateFormatPart.Type.SEPARATOR);
+	dfp.setValue(buf.toString());
+	return dfp;
+}
+
+}
