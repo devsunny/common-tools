@@ -23,6 +23,10 @@ public class LookaheadReaderTest {
 		assertEquals(4, rlen);
 		assertArrayEquals("ABCD".toCharArray(), testb);
 		
+		assertTrue(lreader.lookaheadMatch("EFG".toCharArray(), false));
+		assertTrue(lreader.lookaheadMatch("efg".toCharArray(), true));
+		assertTrue(lreader.lookaheadMatch("eF".toCharArray(), true));
+		
 		char[] testb2 = new char[8];
 		int rlen2 = lreader.read(testb2, 0, 8);
 		assertEquals(7, rlen2);
@@ -39,6 +43,7 @@ public class LookaheadReaderTest {
 		int rlen = lreader.read(testb, 0, 4);
 		assertEquals(4, rlen);
 		assertArrayEquals("ABCD".toCharArray(), testb);
+		
 		
 		char[] testb2 = new char[8];
 		int rlen2 = lreader.read(testb2, 0, 8);
