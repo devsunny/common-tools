@@ -1,7 +1,8 @@
 package com.asksunny;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.net.URL;
 import java.nio.file.Path;
@@ -9,7 +10,7 @@ import java.nio.file.Paths;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
 import com.asksunny.maven.PomXmlParser;
 
 public class PomXmlParserTest {
