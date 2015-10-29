@@ -5,6 +5,7 @@ import java.io.Reader;
 
 public class LookaheadReader extends Reader {
 
+	private static final int MINUS_ONE_CHAR = 65535;
 	private Reader reader;
 	private char[] lookaheadBuffer;
 	private boolean eof = false;
@@ -75,7 +76,7 @@ public class LookaheadReader extends Reader {
 		int i = 0;
 		for (; i < len; i++) {
 			char c2 = this.lookaheadBuffer[(readPos + i) % this.lookaheadBuffer.length];
-			if (c2 == -1) {
+			if (c2 == -1 || c2 == MINUS_ONE_CHAR) {
 				this.eof = true;
 				return rlen;
 			} else {
@@ -118,6 +119,22 @@ public class LookaheadReader extends Reader {
 			return rlen;
 		}
 
+	}
+
+	@Override
+	public int read() throws IOException {
+		if (this.eof) {
+			return -1;
+		} else {
+			char[] b = new char[1];
+			int r = this.read(b, 0, 1);
+			if (r == 0) {
+				this.eof = true;
+				return -1;
+			} else {
+				return b[0];
+			}
+		}
 	}
 
 }
