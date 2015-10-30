@@ -2,8 +2,6 @@ package com.asksunny.ddl;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.asksunny.io.LookaheadReader;
 
@@ -47,9 +45,10 @@ public class LooseDDLLexer {
 			break;
 		case '\'':
 			type = TokenType.STRING_LITERAL;
-			readToChar(imgBuff, '\'');			
-			break;
-		
+			t = new Token(type, lineNumber, colPos);
+			readToChar(imgBuff, '\'');	
+			t.setImage(imgBuff.toString());				
+			break;		
 		case '\n':
 			type = TokenType.IGNOREABLE;
 			t = new Token(type, lineNumber, colPos);
