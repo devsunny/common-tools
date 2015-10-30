@@ -1,5 +1,8 @@
 package com.asksunny.ddl;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum TokenType {
 
 	CREATE(1), OR(2), REPLACE(81), ALTER(3), DROP(4), TABLE(5), ADD(6), CONSTRAINT(7), FOREIGN(8), REFERENCES(9), NOT(
@@ -67,13 +70,73 @@ public enum TokenType {
 	public static final int TKN_IDENTIFIER_VAL = 88;
 	public static final int TKN_OTHER_VAL = 99;
 
+	private static Map<String, Integer> tokens = new HashMap<>();
+
+	static {
+		tokens.put("INT", TKN_INT_VAL);
+		tokens.put("INTEGER", TKN_INTEGER_VAL);
+		tokens.put("TINYINT", TKN_TINYINT_VAL);
+		tokens.put("SMALLINT", TKN_SMALLINT_VAL);
+		tokens.put("BIGINT", TKN_BIGINT_VAL);
+		tokens.put("LONG", TKN_LONG_VAL);
+		tokens.put("DOUBLE", TKN_DOUBLE_VAL);
+		tokens.put("FLOAT", TKN_FLOAT_VAL);
+		tokens.put("REAL", TKN_REAL_VAL);
+		tokens.put("NUMBER", TKN_NUMBER_VAL);
+		tokens.put("DECIMAL", TKN_DECIMAL_VAL);
+		tokens.put("VARCHAR", TKN_VARCHAR_VAL);
+		tokens.put("VARCHAR2", TKN_VARCHAR2_VAL);
+		tokens.put("CHAR", TKN_CHAR_VAL);
+		tokens.put("CHARACTER", TKN_CHARACTER_VAL);
+		tokens.put("DATE", TKN_DATE_VAL);
+		tokens.put("TIME", TKN_TIME_VAL);
+		tokens.put("TIMESTAMP", TKN_TIMESTAMP_VAL);
+		tokens.put("DEFAULT", TKN_DEFAULT_VAL);
+		tokens.put("'", TKN_SINGLE_QUOTE_VAL);
+		tokens.put("(", TKN_LPAREN_VAL);
+		tokens.put(")", TKN_RPAREN_VAL);
+		tokens.put(",", TKN_COMMA_VAL);
+		tokens.put("\"", TKN_DOUBLE_QUOTE_VAL);
+		tokens.put("[", TKN_LBRACK_VAL);
+		tokens.put("]", TKN_RBRACK_VAL);
+		tokens.put(";", TKN_SEMICOLON_VAL);
+		tokens.put("CREATE", TKN_CREATE_VAL);
+		tokens.put("OR", TKN_OR_VAL);
+		tokens.put("REPLACE", TKN_REPLACE_VAL);
+		tokens.put("TABLE", TKN_TABLE_VAL);
+		tokens.put("DROP", TKN_DROP_VAL);
+		tokens.put("ADD", TKN_ADD_VAL);
+		tokens.put("FOREIGN", TKN_FOREIGN_VAL);
+		tokens.put("CONSTRAINT", TKN_CONSTRAINT_VAL);
+		tokens.put("REFERENCES", TKN_REFERENCES_VAL);
+		tokens.put("NOT", TKN_NOT_VAL);
+		tokens.put("NULL", TKN_NULL_VAL);
+		tokens.put("KEY", TKN_KEY_VAL);
+		tokens.put("AUTO_INCREMENT", TKN_AUTO_INCREMENT_VAL);
+		tokens.put("AUTOINCREMENT", TKN_AUTOINCREMENT_VAL);
+	}
+
 	private int intValue = TKN_OTHER_VAL;
 
 	private TokenType(int val) {
 		this.intValue = val;
 	}
 
-	public TokenType getTokenType(int val) {
+	public static TokenType resolveTokenType(String value) {
+		Integer t = tokens.get(value.toUpperCase());
+		if (t != null) {
+			return getTokenType(t);
+		} else if (value.matches("^\\d+$")) {
+			return TokenType.INT_LITERAL;
+		} else if (value.matches("^(\\d*)?\\.\\d+$")) {
+			return TokenType.DOUBLE_LITERAL;
+		} else {
+			return TokenType.OTHER;
+		}
+
+	}
+
+	public static TokenType getTokenType(int val) {
 		switch (val) {
 		case TKN_CREATE_VAL:
 			return CREATE;
@@ -123,6 +186,8 @@ public enum TokenType {
 			return LBRACK;
 		case TKN_RBRACK_VAL:
 			return RBRACK;
+		case TKN_SEMICOLON_VAL:
+			return SEMICOLON;
 		case TKN_INT_VAL:
 			return INT;
 		case TKN_TINYINT_VAL:
