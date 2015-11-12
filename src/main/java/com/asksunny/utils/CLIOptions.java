@@ -18,7 +18,9 @@ public class CLIOptions extends HashMap<String, String> {
 	private static final String PREFIX1 = "-";
 	private static final String PREFIX_ESCAPE = "\\-";
 	private static final String PREFIX2 = "--";
+	private static final String SYSPRO_PREFIX = "-D";
 	private static final Set<String> BOOLEAN_TRUE_VALUES = new HashSet<String>();
+
 	static {
 		BOOLEAN_TRUE_VALUES.add("TRUE");
 		BOOLEAN_TRUE_VALUES.add("YES");
@@ -36,7 +38,43 @@ public class CLIOptions extends HashMap<String, String> {
 		int nextMax = cmdArgs.length - 1;
 		for (int i = 0; i < cmdArgs.length; i++) {
 			String cmdArg = cmdArgs[i];
-			if (cmdArg.startsWith(PREFIX2)) {
+			if (cmdArg.startsWith(SYSPRO_PREFIX)) {
+				if (cmdArg.equals(SYSPRO_PREFIX)) {
+					String next = (i < nextMax) ? cmdArgs[i + 1] : null;
+					if (next.startsWith(PREFIX1)) {
+						continue;
+					} else {
+						if (next.contains("=")) {
+							int idx = next.indexOf("=");
+							if (idx < next.length() - 1) {
+								System.setProperty(next.substring(0, idx), next.substring(idx + 1));
+							}
+						} else {
+							this.put(cmdArg.substring(1), next.substring(1));
+						}
+						i++;
+					}
+				}else{
+					if (cmdArg.contains("=")){
+						int idx = cmdArg.indexOf("=");
+						if (idx < cmdArg.length() - 1) {
+							System.setProperty(cmdArg.substring(2, idx), cmdArg.substring(idx + 1));
+						}						
+					}else{
+						String next = (i < nextMax) ? cmdArgs[i + 1] : null;
+						if (next == null || next.startsWith(PREFIX1)) {
+							this.put(cmdArg.substring(1), "TRUE");
+						} else if (next.startsWith(PREFIX_ESCAPE)) {
+							this.put(cmdArg.substring(1), next.substring(1));
+							i++;
+						} else {
+							this.put(cmdArg.substring(1), next);
+							i++;
+						}						
+					}					
+				}
+
+			} else if (cmdArg.startsWith(PREFIX2)) {
 				String next = (i < nextMax) ? cmdArgs[i + 1] : null;
 				if (next == null || next.startsWith(PREFIX1)) {
 					this.put(cmdArg.substring(2), "TRUE");
@@ -48,7 +86,7 @@ public class CLIOptions extends HashMap<String, String> {
 					i++;
 				}
 			} else if (cmdArg.startsWith(PREFIX1)) {
-				
+
 				String next = (i < nextMax) ? cmdArgs[i + 1] : null;
 				System.out.println(cmdArg);
 				System.out.println(next);
@@ -84,8 +122,7 @@ public class CLIOptions extends HashMap<String, String> {
 		if (idx < this.cmdArgs.length) {
 			return this.cmdArgs[idx];
 		} else {
-			throw new IndexOutOfBoundsException(String.format(
-					ARGUMENT_INDEX_OB_MSG, idx));
+			throw new IndexOutOfBoundsException(String.format(ARGUMENT_INDEX_OB_MSG, idx));
 		}
 	}
 
@@ -102,8 +139,7 @@ public class CLIOptions extends HashMap<String, String> {
 		if (idx < this.cmdArgs.length) {
 			return Integer.valueOf(this.cmdArgs[idx]);
 		} else {
-			throw new IndexOutOfBoundsException(String.format(
-					ARGUMENT_INDEX_OB_MSG, idx));
+			throw new IndexOutOfBoundsException(String.format(ARGUMENT_INDEX_OB_MSG, idx));
 		}
 	}
 
@@ -120,8 +156,7 @@ public class CLIOptions extends HashMap<String, String> {
 		if (idx < this.cmdArgs.length) {
 			return Long.valueOf(this.cmdArgs[idx]);
 		} else {
-			throw new IndexOutOfBoundsException(String.format(
-					ARGUMENT_INDEX_OB_MSG, idx));
+			throw new IndexOutOfBoundsException(String.format(ARGUMENT_INDEX_OB_MSG, idx));
 		}
 	}
 
@@ -138,8 +173,7 @@ public class CLIOptions extends HashMap<String, String> {
 		if (idx < this.cmdArgs.length) {
 			return Long.valueOf(this.cmdArgs[idx]);
 		} else {
-			throw new IndexOutOfBoundsException(String.format(
-					ARGUMENT_INDEX_OB_MSG, idx));
+			throw new IndexOutOfBoundsException(String.format(ARGUMENT_INDEX_OB_MSG, idx));
 		}
 	}
 
@@ -156,8 +190,7 @@ public class CLIOptions extends HashMap<String, String> {
 		if (idx < this.cmdArgs.length) {
 			return BOOLEAN_TRUE_VALUES.contains(this.cmdArgs[idx]);
 		} else {
-			throw new IndexOutOfBoundsException(String.format(
-					ARGUMENT_INDEX_OB_MSG, idx));
+			throw new IndexOutOfBoundsException(String.format(ARGUMENT_INDEX_OB_MSG, idx));
 		}
 	}
 
@@ -173,9 +206,8 @@ public class CLIOptions extends HashMap<String, String> {
 		if (idx < this.gvalues.length) {
 			return this.gvalues[idx];
 		} else {
-			throw new IndexOutOfBoundsException(String.format(
-					"value args index out of bound [%d], values %s", idx,
-					Arrays.asList(this.gvalues)));
+			throw new IndexOutOfBoundsException(
+					String.format("value args index out of bound [%d], values %s", idx, Arrays.asList(this.gvalues)));
 		}
 	}
 
@@ -229,8 +261,7 @@ public class CLIOptions extends HashMap<String, String> {
 
 	public boolean getBooleanArgumentValue(int idx, boolean defaultValue) {
 		if (idx < this.gvalues.length) {
-			return BOOLEAN_TRUE_VALUES
-					.contains(this.gvalues[idx].toUpperCase());
+			return BOOLEAN_TRUE_VALUES.contains(this.gvalues[idx].toUpperCase());
 		} else {
 			return defaultValue;
 		}
@@ -268,8 +299,7 @@ public class CLIOptions extends HashMap<String, String> {
 	public int getIntOption(String optionKey) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
-			throw new IllegalArgumentException(String.format(INVALID_KEY_MSG,
-					optionKey));
+			throw new IllegalArgumentException(String.format(INVALID_KEY_MSG, optionKey));
 		} else {
 			return Integer.valueOf(ret);
 		}
@@ -287,8 +317,7 @@ public class CLIOptions extends HashMap<String, String> {
 	public long getLongOption(String optionKey) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
-			throw new IllegalArgumentException(String.format(INVALID_KEY_MSG,
-					optionKey));
+			throw new IllegalArgumentException(String.format(INVALID_KEY_MSG, optionKey));
 		} else {
 			return Long.valueOf(ret);
 		}
@@ -306,8 +335,7 @@ public class CLIOptions extends HashMap<String, String> {
 	public double getDoubleOption(String optionKey) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
-			throw new IllegalArgumentException(String.format(INVALID_KEY_MSG,
-					optionKey));
+			throw new IllegalArgumentException(String.format(INVALID_KEY_MSG, optionKey));
 		} else {
 			return Double.valueOf(ret);
 		}
@@ -325,15 +353,13 @@ public class CLIOptions extends HashMap<String, String> {
 	public boolean getBooleanOption(String optionKey) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
-			throw new IllegalArgumentException(String.format(INVALID_KEY_MSG,
-					optionKey));
+			throw new IllegalArgumentException(String.format(INVALID_KEY_MSG, optionKey));
 		} else {
 			return BOOLEAN_TRUE_VALUES.contains(ret.toUpperCase());
 		}
 	}
 
-	public String[] getArrayOption(String optionKey, String delimiterRegx,
-			String[] defaultValue) {
+	public String[] getArrayOption(String optionKey, String delimiterRegx, String[] defaultValue) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
 			return defaultValue;
@@ -361,8 +387,7 @@ public class CLIOptions extends HashMap<String, String> {
 		return getArrayOption(optionKey, DEFAULT_DELIMITER_REGEX, defaultValue);
 	}
 
-	public int[] getIntArrayOption(String optionKey, String delimiterRegx,
-			int[] defaultValue) {
+	public int[] getIntArrayOption(String optionKey, String delimiterRegx, int[] defaultValue) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
 			return defaultValue;
@@ -385,12 +410,10 @@ public class CLIOptions extends HashMap<String, String> {
 	}
 
 	public int[] getIntArrayOption(String optionKey, int[] defaultValue) {
-		return getIntArrayOption(optionKey, DEFAULT_DELIMITER_REGEX,
-				defaultValue);
+		return getIntArrayOption(optionKey, DEFAULT_DELIMITER_REGEX, defaultValue);
 	}
 
-	public long[] getLongArrayOption(String optionKey, String delimiterRegx,
-			long[] defaultValue) {
+	public long[] getLongArrayOption(String optionKey, String delimiterRegx, long[] defaultValue) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
 			return defaultValue;
@@ -413,12 +436,10 @@ public class CLIOptions extends HashMap<String, String> {
 	}
 
 	public long[] getLongArrayOption(String optionKey, long[] defaultValue) {
-		return getLongArrayOption(optionKey, DEFAULT_DELIMITER_REGEX,
-				defaultValue);
+		return getLongArrayOption(optionKey, DEFAULT_DELIMITER_REGEX, defaultValue);
 	}
 
-	public double[] getDoubleArrayOption(String optionKey,
-			String delimiterRegx, double[] defaultValue) {
+	public double[] getDoubleArrayOption(String optionKey, String delimiterRegx, double[] defaultValue) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
 			return defaultValue;
@@ -441,12 +462,10 @@ public class CLIOptions extends HashMap<String, String> {
 	}
 
 	public double[] getDoubleArrayOption(String optionKey, double[] defaultValue) {
-		return getDoubleArrayOption(optionKey, DEFAULT_DELIMITER_REGEX,
-				defaultValue);
+		return getDoubleArrayOption(optionKey, DEFAULT_DELIMITER_REGEX, defaultValue);
 	}
 
-	public boolean[] getBooleanArrayOption(String optionKey,
-			String delimiterRegx, boolean[] defaultValue) {
+	public boolean[] getBooleanArrayOption(String optionKey, String delimiterRegx, boolean[] defaultValue) {
 		String ret = this.get(optionKey);
 		if (ret == null) {
 			return defaultValue;
@@ -454,15 +473,13 @@ public class CLIOptions extends HashMap<String, String> {
 			String[] rets = ret.split(delimiterRegx);
 			boolean[] intRets = new boolean[rets.length];
 			for (int i = 0; i < intRets.length; i++) {
-				intRets[i] = BOOLEAN_TRUE_VALUES
-						.contains(rets[i].toUpperCase());
+				intRets[i] = BOOLEAN_TRUE_VALUES.contains(rets[i].toUpperCase());
 			}
 			return intRets;
 		}
 	}
 
-	public boolean[] getBooleanArrayOption(String optionKey,
-			String delimiterRegx) {
+	public boolean[] getBooleanArrayOption(String optionKey, String delimiterRegx) {
 		return getBooleanArrayOption(optionKey, delimiterRegx, new boolean[0]);
 	}
 
@@ -470,10 +487,8 @@ public class CLIOptions extends HashMap<String, String> {
 		return getBooleanArrayOption(optionKey, new boolean[0]);
 	}
 
-	public boolean[] getBooleanArrayOption(String optionKey,
-			boolean[] defaultValue) {
-		return getBooleanArrayOption(optionKey, DEFAULT_DELIMITER_REGEX,
-				defaultValue);
+	public boolean[] getBooleanArrayOption(String optionKey, boolean[] defaultValue) {
+		return getBooleanArrayOption(optionKey, DEFAULT_DELIMITER_REGEX, defaultValue);
 	}
 
 }
