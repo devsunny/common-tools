@@ -86,7 +86,6 @@ public class CLIOptions extends HashMap<String, String> {
 					i++;
 				}
 			} else if (cmdArg.startsWith(PREFIX1)) {
-
 				String next = (i < nextMax) ? cmdArgs[i + 1] : null;
 				System.out.println(cmdArg);
 				System.out.println(next);
