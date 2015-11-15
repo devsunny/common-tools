@@ -82,6 +82,11 @@ public class RegExContainsValueValidator extends ValueValidator {
 		boolean ma = true;
 		for (Object object : objs) {
 			String val = object.toString();
+			if (getValidationRule().getMinSize() > 0 || getValidationRule().getMaxSize() > 0) {
+				if (!isValidSize(getValidationRule().getMinSize(), getValidationRule().getMaxSize(), val)) {
+					return false;
+				}
+			}
 			boolean m = false;
 			for (int i = 0; i < paterns.length; i++) {
 				m = paterns[i].matcher(val).find();

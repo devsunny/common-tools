@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import com.asksunny.validator.annotation.ValueValidation;
+
+import scalaz.std.java.util.map;
 
 public class RegExMatchValueValidator extends ValueValidator {
 
@@ -61,10 +64,11 @@ public class RegExMatchValueValidator extends ValueValidator {
 		if (clz.isArray()) {
 			Object[] ar = (Object[]) value;
 			valid = allMatch(Arrays.asList(ar));
-		} else if (List.class.isAssignableFrom(clz)) {
-			valid = allMatch((List) value);
 		} else if (Collection.class.isAssignableFrom(clz)) {
 			valid = allMatch(new ArrayList((Collection) value));
+		} else if (Map.class.isAssignableFrom(clz)) {
+			Map map = (Map) value;
+			valid = allMatch(new ArrayList(map.values()));
 		} else {
 			for (int i = 0; i < paterns.length; i++) {
 				valid = paterns[i].matcher(value.toString()).matches();
@@ -74,8 +78,8 @@ public class RegExMatchValueValidator extends ValueValidator {
 			}
 		}
 		valid = isNegate() ? !valid : valid;
-		return new ValidationResult(getClass().getName(), valid, getValidationRule().getTargetType(), getFieldName(), value,
-				valid ? getValidationRule().getSuccessMessage() : getValidationRule().getFailedMessage());
+		return new ValidationResult(getClass().getName(), valid, getValidationRule().getTargetType(), getFieldName(),
+				value, valid ? getValidationRule().getSuccessMessage() : getValidationRule().getFailedMessage());
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -83,6 +87,11 @@ public class RegExMatchValueValidator extends ValueValidator {
 		boolean ma = true;
 		for (Object object : objs) {
 			String val = object.toString();
+			if (getValidationRule().getMinSize() > 0 || getValidationRule().getMaxSize() > 0) {
+				if (!isValidSize(getValidationRule().getMinSize(), getValidationRule().getMaxSize(), val)) {
+					return false;
+				}
+			}
 			boolean m = false;
 			for (int i = 0; i < paterns.length; i++) {
 				m = paterns[i].matcher(val).matches();
