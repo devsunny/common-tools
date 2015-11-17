@@ -1,6 +1,7 @@
 package com.asksunny.validator;
 
 import java.util.List;
+import java.util.Map;
 
 import com.asksunny.validator.annotation.ValueValidation;
 
@@ -31,6 +32,13 @@ public class TestChildObject {
 	
 	@ValueValidation(operator=ValidationOperator.LESS_OR_EQUALS, maxValue="12")
 	private int k5Age;
+	
+	@ValueValidation(custom="com.asksunny.validator.TestCustomValidator")
+	private String testCustom;
+	
+	
+	@ValueValidation(custom="com.asksunny.validator.TestCustomMapValidator")
+	private Map<String, String> testMapValidation;
 	
 	
 	@ValueValidation(notNull=true, minSize=1, maxSize=5 , operator=ValidationOperator.BETWEEN)
@@ -160,6 +168,38 @@ public class TestChildObject {
 
 	public void setK5Age(int k5Age) {
 		this.k5Age = k5Age;
+	}
+
+
+
+
+
+	public String getTestCustom() {
+		return testCustom;
+	}
+
+
+
+
+
+	public void setTestCustom(String testCustom) {
+		this.testCustom = testCustom;
+	}
+
+
+
+
+
+	public Map<String, String> getTestMapValidation() {
+		return testMapValidation;
+	}
+
+
+
+
+
+	public void setTestMapValidation(Map<String, String> testMapValidation) {
+		this.testMapValidation = testMapValidation;
 	}
 	
 	

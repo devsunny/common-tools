@@ -93,14 +93,15 @@ public class ValidationResult {
 	public static List<ValidationResult> flatFailedValidationResults(List<ValidationResult> allrs) {
 		List<ValidationResult> flatResults = new ArrayList<ValidationResult>();
 		List<ValidationResult> failedResults = new ArrayList<ValidationResult>();
-
+		
 		if (allrs != null && allrs.size() > 0) {
 			for (ValidationResult vrs : allrs) {
 				flatResults.addAll(vrs.flat());
 			}
 		}
 		for (ValidationResult vrs : flatResults) {
-			if (!vrs.isSuccess()) {
+			
+			if (!vrs.isSuccess()) {			
 				failedResults.add(vrs);
 			}
 		}
