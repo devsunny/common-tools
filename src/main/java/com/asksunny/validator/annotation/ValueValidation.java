@@ -14,6 +14,8 @@ import com.asksunny.validator.ValidationOperator;
 public @interface ValueValidation {
 
 	boolean notNull() default false;
+	
+	String custom() default "";
 
 	ValidationOperator operator() default ValidationOperator.NONE;
 

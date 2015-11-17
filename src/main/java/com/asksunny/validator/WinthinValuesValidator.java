@@ -4,11 +4,7 @@ import com.asksunny.validator.annotation.ValueValidation;
 
 public class WinthinValuesValidator extends ValueValidator {
 
-	public WinthinValuesValidator(Class<?> targetType, Class<?> valueType, String fieldName, ValueValidation fv,
-			boolean neg) {
-		super(targetType, valueType, fieldName, fv, neg);
-
-	}
+	
 
 	public WinthinValuesValidator(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv) {
 		super(targetType, fieldType, fieldName, fv);
@@ -20,10 +16,7 @@ public class WinthinValuesValidator extends ValueValidator {
 
 	}
 
-	public WinthinValuesValidator(String fieldName, ValueValidationRule rule, boolean neg) {
-		super(fieldName, rule, neg);
-
-	}
+	
 
 	public WinthinValuesValidator(String fieldName, ValueValidationRule rule) {
 		super(fieldName, rule);

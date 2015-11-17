@@ -9,12 +9,6 @@ public class GreaterThanValueValidator extends ValueValidator {
 
 	private boolean includeEquals = false;
 
-	public GreaterThanValueValidator(Class<?> targetType, Class<?> valueType, String fieldName, ValueValidation fv,
-			boolean neg) {
-		super(targetType, valueType, fieldName, fv, false);
-		this.includeEquals = neg;
-	}
-
 	public GreaterThanValueValidator(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv) {
 		super(targetType, fieldType, fieldName, fv);
 		this.includeEquals = false;
@@ -25,11 +19,6 @@ public class GreaterThanValueValidator extends ValueValidator {
 		this.includeEquals = false;
 	}
 
-	public GreaterThanValueValidator(String fieldName, ValueValidationRule rule, boolean neg) {
-		super(fieldName, rule, false);
-		this.includeEquals = neg;
-	}
-
 	public GreaterThanValueValidator(String fieldName, ValueValidationRule rule) {
 		super(fieldName, rule);
 		this.includeEquals = false;
@@ -37,9 +26,9 @@ public class GreaterThanValueValidator extends ValueValidator {
 
 	@Override
 	public ValidationResult validate(Object value) {
-		if (getValidationRule().getMinValue() == null) {			
-			return new ValidationResult(getClass().getName(), Boolean.TRUE, getValidationRule().getTargetType(), getFieldName(),value,
-					getValidationRule().getSuccessMessage());
+		if (getValidationRule().getMinValue() == null) {
+			return new ValidationResult(getClass().getName(), Boolean.TRUE, getValidationRule().getTargetType(),
+					getFieldName(), value, getValidationRule().getSuccessMessage());
 		}
 		int cmpResult = 0;
 		Class<?> clz = value.getClass();

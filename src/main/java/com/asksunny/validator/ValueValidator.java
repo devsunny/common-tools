@@ -22,29 +22,19 @@ public abstract class ValueValidator {
 	private boolean shortCircuit = false;
 
 	public ValueValidator(Class<?> fieldType, String fieldName, ValueValidation fv) {
-		this(null, fieldType, fieldName, fv, false);
+		this(null, fieldType, fieldName, fv);
 	}
 
-	public ValueValidator(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv) {
-		this(targetType, fieldType, fieldName, fv, false);
-	}
-
-	public ValueValidator(Class<?> targetType, Class<?> valueType, String fieldName, ValueValidation fv, boolean neg) {
+	public ValueValidator(Class<?> targetType, Class<?> valueType, String fieldName, ValueValidation fv) {
 		this.validationRule = new ValueValidationRule(targetType, valueType, fv);
 		this.fieldName = fieldName;
 		this.dateFormat = new SimpleDateFormat(fv.format());
-		this.negate = neg;
 	}
 
 	public ValueValidator(String fieldName, ValueValidationRule rule) {
-		this(fieldName, rule, false);
-	}
-
-	public ValueValidator(String fieldName, ValueValidationRule rule, boolean neg) {
 		this.validationRule = rule;
 		this.fieldName = fieldName;
 		this.dateFormat = new SimpleDateFormat(rule.getDateFormat());
-		this.negate = neg;
 	}
 
 	public abstract ValidationResult validate(Object value);

@@ -12,11 +12,7 @@ public class RegExContainsValueValidator extends ValueValidator {
 
 	private Pattern[] paterns = null;
 
-	public RegExContainsValueValidator(Class<?> targetType, Class<?> valueType, String fieldName, ValueValidation fv,
-			boolean neg) {
-		super(targetType, valueType, fieldName, fv, neg);
-		initPattern();
-	}
+	
 
 	public RegExContainsValueValidator(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv) {
 		super(targetType, fieldType, fieldName, fv);
@@ -27,11 +23,7 @@ public class RegExContainsValueValidator extends ValueValidator {
 		super(fieldType, fieldName, fv);
 		initPattern();
 	}
-
-	public RegExContainsValueValidator(String fieldName, ValueValidationRule rule, boolean neg) {
-		super(fieldName, rule, neg);
-		initPattern();
-	}
+	
 
 	public RegExContainsValueValidator(String fieldName, ValueValidationRule rule) {
 		super(fieldName, rule);

@@ -1,90 +1,110 @@
 package com.asksunny.validator;
 
-import java.lang.reflect.Field;
+import java.lang.reflect.Constructor;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.asksunny.validator.annotation.ValueValidation;
 
 public final class ValueValidatorFactory {
 
+	private static final Map<String, Class<?>> VALIDATOR_IMPLS = new HashMap<String, Class<?>>();
+
+	static {
+		VALIDATOR_IMPLS.put(ValidationOperator.NONE.toString(), MaxMinValueSizeValidator.class);
+		VALIDATOR_IMPLS.put(ValidationOperator.JAVA_BEAN.toString(), NestedBeanValueValidator.class);
+
+		VALIDATOR_IMPLS.put(ValidationOperator.EQUALS.toString(), EqualsValueValidator.class);
+		VALIDATOR_IMPLS.put(ValidationOperator.NOT_EQUALS.toString(), NotEqualsValueValidator.class);
+
+		VALIDATOR_IMPLS.put(ValidationOperator.WITHIN.toString(), WinthinValuesValidator.class);
+		VALIDATOR_IMPLS.put(ValidationOperator.NOT_WITHIN.toString(), NotWinthinValuesValidator.class);
+
+		VALIDATOR_IMPLS.put(ValidationOperator.BETWEEN.toString(), BetweenValueValidator.class);
+		VALIDATOR_IMPLS.put(ValidationOperator.NOT_BETWEEN.toString(), NotBetweenValueValidator.class);
+
+		VALIDATOR_IMPLS.put(ValidationOperator.GREATER.toString(), GreaterThanValueValidator.class);
+		VALIDATOR_IMPLS.put(ValidationOperator.GREATER_OR_EQUALS.toString(), GreaterThanOrEqualsValueValidator.class);
+
+		VALIDATOR_IMPLS.put(ValidationOperator.LESS.toString(), LessThanValueValidator.class);
+		VALIDATOR_IMPLS.put(ValidationOperator.LESS_OR_EQUALS.toString(), LessThanOrEqualsValueValidator.class);
+
+		VALIDATOR_IMPLS.put(ValidationOperator.REGEX_MATCH.toString(), RegExMatchValueValidator.class);
+		VALIDATOR_IMPLS.put(ValidationOperator.REGEX_NOT_MATCH.toString(), RegExNotMatchValueValidator.class);
+
+		VALIDATOR_IMPLS.put(ValidationOperator.REGEX_CONTAINS.toString(), RegExContainsValueValidator.class);
+		VALIDATOR_IMPLS.put(ValidationOperator.REGEX_NOT_CONTAINS.toString(), RegExNotContainsValueValidator.class);
+
+	}
+
 	private ValueValidatorFactory() {
 
 	}
 
-	public static ValueValidator createValidator(Class<?> targetType, Class<?> valueType, String valueName,  ValueValidation fv) {
-
-		if (fv.operator() == ValidationOperator.NONE) {
-			return new MaxMinValueSizeValidator(targetType, valueType, valueName, fv);
-		} else if (fv.operator() == ValidationOperator.JAVA_BEAN) {
-			return new NestedBeanValueValidator(targetType, valueType, valueName, fv);
-		} else if (fv.operator() == ValidationOperator.EQUALS
-				|| (fv.operator() == ValidationOperator.WITHIN && fv.value().length == 1)) {
-			return new EqualsValueValidator(targetType, valueType, valueName, fv);
-		} else if (fv.operator() == ValidationOperator.NOT_EQUALS
-				|| (fv.operator() == ValidationOperator.NOT_WITHIN && fv.value().length == 1)) {
-			return new WinthinValuesValidator(targetType, valueType, valueName, fv, true);
-		} else if (fv.operator() == ValidationOperator.WITHIN || fv.operator() == ValidationOperator.NOT_WITHIN) {
-			return new WinthinValuesValidator(targetType, valueType, valueName, fv,
-					fv.operator() == ValidationOperator.NOT_WITHIN);
-		} else if (fv.operator() == ValidationOperator.BETWEEN || fv.operator() == ValidationOperator.NOT_BETWEEN) {
-			return new BetweenValueValidator(targetType, valueType, valueName, fv,
-					fv.operator() == ValidationOperator.NOT_BETWEEN);
-		} else if (fv.operator() == ValidationOperator.GREATER
-				|| fv.operator() == ValidationOperator.GREATER_OR_EQUALS) {
-			return new GreaterThanValueValidator(targetType, valueType, valueName, fv,
-					fv.operator() == ValidationOperator.GREATER_OR_EQUALS);
-		} else if (fv.operator() == ValidationOperator.LESS || fv.operator() == ValidationOperator.LESS_OR_EQUALS) {
-			return new LessThanValueValidator(targetType, valueType, valueName, fv,
-					fv.operator() == ValidationOperator.LESS_OR_EQUALS);
-		} else if (fv.operator() == ValidationOperator.REGEX_MATCH
-				|| fv.operator() == ValidationOperator.REGEX_NOT_MATCH) {
-			return new RegExMatchValueValidator(targetType, valueType, valueName, fv,
-					fv.operator() == ValidationOperator.REGEX_NOT_MATCH);
-		} else if (fv.operator() == ValidationOperator.REGEX_CONTAINS
-				|| fv.operator() == ValidationOperator.REGEX_NOT_CONTAINS) {
-			return new RegExContainsValueValidator(targetType, valueType, valueName, fv,
-					fv.operator() == ValidationOperator.REGEX_NOT_CONTAINS);
+	public static ValueValidator createValidator(Class<?> targetType, Class<?> valueType, String valueName,
+			ValueValidation fv) {
+		Class<?> clazz = null;
+		if (fv.operator() == ValidationOperator.NONE && fv.custom().length() > 0) {
+			try {
+				clazz = Class.forName(fv.custom());
+			} catch (ClassNotFoundException e) {
+				throw new ValidationException(
+						String.format("custom ValueValidator class [%s] not found in classpath", fv.custom()), e);
+			}
 		} else {
-			return new MaxMinValueSizeValidator(targetType, valueType, valueName, fv);
+			clazz = VALIDATOR_IMPLS.get(fv.operator().toString());
+			if (clazz == null) {
+				throw new ValidationException(
+						String.format("Unsupported Validation Operator[%s]", fv.operator().toString()));
+			}
 		}
+		try {
+			@SuppressWarnings("rawtypes")
+			Constructor constr = clazz.getConstructor(Class.class, Class.class, String.class, ValueValidation.class);
+			Object obj = constr.newInstance(targetType, valueType, valueName, fv);
+			return (ValueValidator) obj;
+		} catch (Exception ex) {
+			StringBuilder buf = new StringBuilder();
+			buf.append("Failed to instanciate ValueValidator class[").append(fv.custom()).append("]");
+			buf.append("ValueValidator class has to extend com.asksunny.validator.ValueValidator;");
+			buf.append(
+					"ValueValidator class has to have contructor(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv).");
+			throw new ValidationException(buf.toString(), ex);
+		}
+
 	}
 
 	public static ValueValidator createValidator(String valueName, ValueValidationRule vvrule) {
 
-		if (vvrule.getOperator() == ValidationOperator.NONE) {
-			return new MaxMinValueSizeValidator(valueName, vvrule);
-		} else if (vvrule.getOperator() == ValidationOperator.JAVA_BEAN) {
-			return new NestedBeanValueValidator(valueName, vvrule);
-		} else if (vvrule.getOperator() == ValidationOperator.EQUALS
-				|| (vvrule.getOperator() == ValidationOperator.WITHIN && vvrule.getValues().length == 1)) {
-			return new EqualsValueValidator(valueName, vvrule);
-		} else if (vvrule.getOperator() == ValidationOperator.NOT_EQUALS
-				|| (vvrule.getOperator() == ValidationOperator.NOT_WITHIN && vvrule.getValues().length == 1)) {
-			return new WinthinValuesValidator(valueName, vvrule, true);
-		} else if (vvrule.getOperator() == ValidationOperator.WITHIN
-				|| vvrule.getOperator() == ValidationOperator.NOT_WITHIN) {
-			return new WinthinValuesValidator(valueName, vvrule, vvrule.getOperator() == ValidationOperator.NOT_WITHIN);
-		} else if (vvrule.getOperator() == ValidationOperator.BETWEEN
-				|| vvrule.getOperator() == ValidationOperator.NOT_BETWEEN) {
-			return new BetweenValueValidator(valueName, vvrule, vvrule.getOperator() == ValidationOperator.NOT_BETWEEN);
-		} else if (vvrule.getOperator() == ValidationOperator.GREATER
-				|| vvrule.getOperator() == ValidationOperator.GREATER_OR_EQUALS) {
-			return new GreaterThanValueValidator(valueName, vvrule,
-					vvrule.getOperator() == ValidationOperator.GREATER_OR_EQUALS);
-		} else if (vvrule.getOperator() == ValidationOperator.LESS
-				|| vvrule.getOperator() == ValidationOperator.LESS_OR_EQUALS) {
-			return new LessThanValueValidator(valueName, vvrule,
-					vvrule.getOperator() == ValidationOperator.LESS_OR_EQUALS);
-		} else if (vvrule.getOperator() == ValidationOperator.REGEX_MATCH
-				|| vvrule.getOperator() == ValidationOperator.REGEX_NOT_MATCH) {
-			return new RegExMatchValueValidator(valueName, vvrule,
-					vvrule.getOperator() == ValidationOperator.REGEX_NOT_MATCH);
-		} else if (vvrule.getOperator() == ValidationOperator.REGEX_CONTAINS
-				|| vvrule.getOperator() == ValidationOperator.REGEX_NOT_CONTAINS) {
-			return new RegExContainsValueValidator(valueName, vvrule,
-					vvrule.getOperator() == ValidationOperator.REGEX_NOT_CONTAINS);
+		Class<?> clazz = null;
+		if (vvrule.getOperator() == ValidationOperator.NONE && vvrule.getCustomValidator().length() > 0) {
+			try {
+				clazz = Class.forName(vvrule.getCustomValidator());
+			} catch (ClassNotFoundException e) {
+				throw new ValidationException(String.format("custom ValueValidator class [%s] not found in classpath",
+						vvrule.getCustomValidator()), e);
+			}
 		} else {
-			return new MaxMinValueSizeValidator(valueName, vvrule);
+			clazz = VALIDATOR_IMPLS.get(vvrule.getOperator().toString());
+			if (clazz == null) {
+				throw new ValidationException(
+						String.format("Unsupported Validation Operator[%s]", vvrule.getOperator().toString()));
+			}
 		}
+		try {
+			@SuppressWarnings("rawtypes")
+			Constructor constr = clazz.getConstructor(String.class, ValueValidationRule.class);
+			Object obj = constr.newInstance(valueName, vvrule);
+			return (ValueValidator) obj;
+		} catch (Exception ex) {
+			StringBuilder buf = new StringBuilder();
+			buf.append("Failed to instanciate ValueValidator class[").append(vvrule.getCustomValidator()).append("]");
+			buf.append("ValueValidator class has to extend com.asksunny.validator.ValueValidator;");
+			buf.append(
+					"ValueValidator class has to have contructor(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv).");
+			throw new ValidationException(buf.toString(), ex);
+		}
+
 	}
 
 }

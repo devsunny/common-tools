@@ -19,6 +19,7 @@ public class ValueValidationRule {
 	private Class<?> targetType = null;
 	private Class<?> valueType = null;
 	private String dateFormat = "yyyy-MM-dd";
+	private String customValidator = EMPTY_STRING;
 
 	public ValueValidationRule(Class<?> targetType, Class<?> valueType, boolean nillable, ValidationOperator operator,
 			String[] values, String minValue, String maxValue, int minSize, int maxSize, String successMessage,
@@ -28,6 +29,23 @@ public class ValueValidationRule {
 		this.valueType = valueType;
 		this.nillable = nillable;
 		this.operator = operator;
+		this.values = values;
+		this.minValue = minValue;
+		this.maxValue = maxValue;
+		this.minSize = minSize;
+		this.maxSize = maxSize;
+		this.successMessage = successMessage;
+		this.failedMessage = failedMessage;
+	}
+
+	public ValueValidationRule(Class<?> targetType, Class<?> valueType, boolean nillable,
+			String customValidatorClassName, String[] values, String minValue, String maxValue, int minSize,
+			int maxSize, String successMessage, String failedMessage) {
+		super();
+		this.targetType = targetType;
+		this.valueType = valueType;
+		this.nillable = nillable;
+		this.customValidator = customValidatorClassName;
 		this.values = values;
 		this.minValue = minValue;
 		this.maxValue = maxValue;
@@ -195,6 +213,14 @@ public class ValueValidationRule {
 				+ getFailedMessage() + ", getTargetType()=" + getTargetType() + ", getValueType()=" + getValueType()
 				+ ", getDateFormat()=" + getDateFormat() + ", getClass()=" + getClass() + ", hashCode()=" + hashCode()
 				+ ", toString()=" + super.toString() + "]";
+	}
+
+	public String getCustomValidator() {
+		return customValidator;
+	}
+
+	public void setCustomValidator(String customValidator) {
+		this.customValidator = customValidator;
 	}
 
 }

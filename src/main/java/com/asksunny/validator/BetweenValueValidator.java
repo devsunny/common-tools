@@ -7,21 +7,12 @@ import com.asksunny.validator.annotation.ValueValidation;
 
 public class BetweenValueValidator extends ValueValidator {
 
-	public BetweenValueValidator(Class<?> targetType, Class<?> valueType, String fieldName, ValueValidation fv,
-			boolean neg) {
-		super(targetType, valueType, fieldName, fv, neg);
-	}
-
 	public BetweenValueValidator(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv) {
 		super(targetType, fieldType, fieldName, fv);
 	}
 
 	public BetweenValueValidator(Class<?> fieldType, String fieldName, ValueValidation fv) {
 		super(fieldType, fieldName, fv);
-	}
-
-	public BetweenValueValidator(String fieldName, ValueValidationRule rule, boolean neg) {
-		super(fieldName, rule, neg);
 	}
 
 	public BetweenValueValidator(String fieldName, ValueValidationRule rule) {

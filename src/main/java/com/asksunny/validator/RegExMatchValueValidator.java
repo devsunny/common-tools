@@ -15,11 +15,7 @@ public class RegExMatchValueValidator extends ValueValidator {
 
 	private Pattern[] paterns = null;
 
-	public RegExMatchValueValidator(Class<?> targetType, Class<?> valueType, String fieldName, ValueValidation fv,
-			boolean neg) {
-		super(targetType, valueType, fieldName, fv, neg);
-		initPattern();
-	}
+	
 
 	public RegExMatchValueValidator(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv) {
 		super(targetType, fieldType, fieldName, fv);
@@ -31,11 +27,7 @@ public class RegExMatchValueValidator extends ValueValidator {
 		initPattern();
 	}
 
-	public RegExMatchValueValidator(String fieldName, ValueValidationRule rule, boolean neg) {
-		super(fieldName, rule, neg);
-		initPattern();
-	}
-
+	
 	public RegExMatchValueValidator(String fieldName, ValueValidationRule rule) {
 		super(fieldName, rule);
 		initPattern();

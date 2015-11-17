@@ -14,6 +14,10 @@ public class ValidationException extends RuntimeException {
 	public ValidationException(String msg, Throwable t) {
 		super(msg, t);
 	}
+	
+	public ValidationException(String msg) {
+		super(msg);
+	}
 
 	public ValidationException(Class<?> targetType, Class<?> valueType, String fieldName, ValidationResult result) {
 		super(String.format("Validation failed for %s.%s type of %s \nReason: %s \nActual value: %s", targetType.getName(),

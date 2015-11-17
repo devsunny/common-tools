@@ -9,11 +9,7 @@ public class LessThanValueValidator extends ValueValidator {
 
 	private boolean includeEquals = false;
 
-	public LessThanValueValidator(Class<?> targetType, Class<?> valueType, String fieldName, ValueValidation fv,
-			boolean neg) {
-		super(targetType, valueType, fieldName, fv, false);
-		this.includeEquals = neg;
-	}
+	
 
 	public LessThanValueValidator(Class<?> targetType, Class<?> fieldType, String fieldName, ValueValidation fv) {
 		super(targetType, fieldType, fieldName, fv);
@@ -25,10 +21,7 @@ public class LessThanValueValidator extends ValueValidator {
 		this.includeEquals = false;
 	}
 
-	public LessThanValueValidator(String fieldName, ValueValidationRule rule, boolean neg) {
-		super(fieldName, rule, false);
-		this.includeEquals = neg;
-	}
+	
 
 	public LessThanValueValidator(String fieldName, ValueValidationRule rule) {
 		super(fieldName, rule);
