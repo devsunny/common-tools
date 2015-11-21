@@ -6,10 +6,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import javax.crypto.spec.SecretKeySpec;
+
 public class IVGenerator {
 
 	public IVGenerator() {
-		// TODO Auto-generated constructor stub
 	}
 
 	public static void main(String[] args) {
@@ -59,6 +60,21 @@ public class IVGenerator {
 			}
 		}
 		System.out.println("};");
+
+		
+		byte[] keyBytes = new byte[32];
+		rand.nextBytes(keyBytes);
+		SecretKeySpec key = new SecretKeySpec(keyBytes, "AES");
+		keyBytes = key.getEncoded();
+		System.out.println(keyBytes.length);
+		System.out.print("static final byte[] CRYPTO_IV_256 = {");
+		for (int i = 0; i < keyBytes.length; i++) {
+			System.out.print(String.format("(byte)%d", (keyBytes[i] & 0xEF)));
+			if (i < keyBytes.length - 1) {
+				System.out.print(",");
+			}
+		}
+		System.out.print("};");
 	}
 
 }
